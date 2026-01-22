@@ -1,0 +1,12 @@
+# config.yml (optional template for future use)
+default:
+  google_sheet_csv_url: "<paste google sheet published-as-csv URL here>"
+  app_base_url: "<https url>"
+  osf_project_id: "<osf project id>"
+
+postgres:
+  host: "<host>"
+  db: "<db>"
+  user: "<user>"
+  password: "<password>"
+  port: 5432

@@ -1,0 +1,13 @@
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+.Ruserdata
+renv/library/
+renv/local/
+renv/staging/
+renv/python/
+.DS_Store
+Thumbs.db
+.env
+exports/

@@ -1,0 +1,9 @@
+Vendored components from https://github.com/StatisMike/shiny.quetzio
+
+Files adapted:
+- R/quetzio/vendor_ui.R (derived from R/create_source.R, R/generate_questions.R, R/utils.R, R/inputs.R)
+
+Changes:
+- Simplified to render UI from the axp questionnaire data.frame schema.
+- Added sliderInput support with touch tracking and defaults.
+- Removed server-side submission/validation logic; handled in app.
