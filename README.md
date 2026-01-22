@@ -23,6 +23,7 @@ See `config/.env.example` for required variables. Secrets must be stored in the 
 - Publish your sheet as CSV and set `GOOGLE_SHEET_CSV_URL`.
 - Required columns are listed in `docs/questionnaire_schema.md`.
 - Versioning is tracked via `instrument_id`, `instrument_version`, `language`, and `definition_hash`.
+- Optional UI columns include `width`, `placeholder`, `slider_left_label`, `slider_right_label`, and `slider_ticks`.
 
 ## Slider input
 
@@ -73,10 +74,11 @@ Dependencies used:
 - readr
 - dplyr
 - tidyr
-- fmsb
+- ggplot2
 
 ## Notes
 
 - Free-text responses are stored only in the raw database and excluded from public exports by default.
 - IP addresses are not collected or stored.
 - Do not commit `.env` files or tokens.
+- `plot_scores_radar()` expects the 11-ASC canonical scale order; if your `scale_id` values differ, pass a named `scale_map` to map them to canonical labels.

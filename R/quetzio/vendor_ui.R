@@ -24,6 +24,10 @@ quetzio_df_to_items <- function(df) {
     row <- df[i, ]
     input_id <- as.character(row$item_id)
 
+    get_col <- function(name) {
+      if (name %in% names(row)) row[[name]] else NA
+    }
+
     mandatory <- FALSE
     if ("required" %in% names(row)) mandatory <- as.logical(row$required)
     if ("mandatory" %in% names(row)) mandatory <- as.logical(row$mandatory)
@@ -32,20 +36,23 @@ quetzio_df_to_items <- function(df) {
       type = as.character(row$type),
       label = as.character(row$label),
       mandatory = mandatory,
-      placeholder = quetzio_null_def(row$placeholder, NULL),
-      width = quetzio_null_def(row$width, NULL),
-      options = quetzio_null_def(row$options, NULL),
-      min = quetzio_null_def(row$min, NA),
-      max = quetzio_null_def(row$max, NA)
+      placeholder = quetzio_null_def(get_col("placeholder"), NULL),
+      width = quetzio_null_def(get_col("width"), NULL),
+      options = quetzio_null_def(get_col("options"), NULL),
+      min = quetzio_null_def(get_col("min"), NA),
+      max = quetzio_null_def(get_col("max"), NA)
     )
 
     # slider-specific fields
-    item$slider_min <- quetzio_null_def(row$slider_min, 0)
-    item$slider_max <- quetzio_null_def(row$slider_max, 100)
-    item$slider_value <- quetzio_null_def(row$slider_value, item$slider_min)
-    item$slider_step <- quetzio_null_def(row$slider_step, 1)
-    item$slider_pre <- quetzio_null_def(row$slider_pre, "")
-    item$slider_post <- quetzio_null_def(row$slider_post, "")
+    item$slider_min <- quetzio_null_def(get_col("slider_min"), 0)
+    item$slider_max <- quetzio_null_def(get_col("slider_max"), 100)
+    item$slider_value <- quetzio_null_def(get_col("slider_value"), item$slider_min)
+    item$slider_step <- quetzio_null_def(get_col("slider_step"), 1)
+    item$slider_pre <- quetzio_null_def(get_col("slider_pre"), "")
+    item$slider_post <- quetzio_null_def(get_col("slider_post"), "")
+    item$slider_left_label <- quetzio_null_def(get_col("slider_left_label"), NA)
+    item$slider_right_label <- quetzio_null_def(get_col("slider_right_label"), NA)
+    item$slider_ticks <- quetzio_null_def(get_col("slider_ticks"), NA)
 
     items[[input_id]] <- item
   }
@@ -62,7 +69,7 @@ quetzio_generate_ui <- function(items) {
     item <- items[[input_id]]
     label <- if (isTRUE(item$mandatory)) quetzio_label_mandatory(item$label) else item$label
 
-    ui_list[[idx]] <- switch(
+    question_ui <- switch(
       item$type,
       textInput = {
         textInput(input_id, label, placeholder = quetzio_null_def(item$placeholder, ""), width = item$width)
@@ -81,6 +88,18 @@ quetzio_generate_ui <- function(items) {
         )
       },
       sliderInput = {
+        left_label <- if (!is.na(item$slider_left_label)) {
+          item$slider_left_label
+        } else {
+          as.character(item$slider_min)
+        }
+        right_label <- if (!is.na(item$slider_right_label)) {
+          item$slider_right_label
+        } else {
+          as.character(item$slider_max)
+        }
+        ticks_val <- if (!is.na(item$slider_ticks)) as.logical(item$slider_ticks) else FALSE
+        width_val <- if (is.null(item$width) || is.na(item$width) || item$width == "") "100%" else item$width
         tagList(
           sliderInput(
             input_id,
@@ -90,11 +109,22 @@ quetzio_generate_ui <- function(items) {
             value = item$slider_value,
             step = item$slider_step,
             pre = item$slider_pre,
-            post = item$slider_post
+            post = item$slider_post,
+            ticks = ticks_val,
+            width = width_val
+          ),
+          tags$div(
+            class = "slider-labels",
+            tags$span(class = "slider-label-left", left_label),
+            tags$span(class = "slider-label-right", right_label)
           ),
           tags$script(HTML(sprintf(
             "$(function(){ $('#%s').on('change input', function(){ Shiny.setInputValue('%s__touched', 1, {priority: 'event'}); }); });",
             input_id, input_id
+          ))),
+          tags$script(HTML(sprintf(
+            "$(function(){\n  var id = '%s';\n  var min = %s;\n  var max = %s;\n  function updateBar(){\n    var val = parseFloat($('#' + id).val());\n    if (isNaN(val)) { val = min; }\n    var pct = (val - min) / (max - min);\n    pct = Math.max(0, Math.min(1, pct));\n    var light = 65 - (pct * 25);\n    var color = 'hsl(266, 85%%,' + light + '%%)';\n    var $irs = $('#' + id).closest('.form-group').find('.irs--shiny');\n    $irs.find('.irs-bar, .irs-bar-edge').css('background', color);\n    $irs.find('.irs-handle, .irs-slider').css('border-color', color);\n  }\n  updateBar();\n  $('#' + id).on('change input', updateBar);\n});",
+            input_id, item$slider_min, item$slider_max
           )))
         )
       },
@@ -104,13 +134,28 @@ quetzio_generate_ui <- function(items) {
       },
       selectInput = {
         choices <- quetzio_split_options(item$options)
-        selectInput(input_id, label, choices = choices, width = item$width)
+        if (!is.null(item$placeholder) && !is.na(item$placeholder) && item$placeholder != "") {
+          choices <- c(setNames("", item$placeholder), choices)
+          selectInput(input_id, label, choices = choices, selected = "", width = item$width)
+        } else {
+          selectInput(input_id, label, choices = choices, width = item$width)
+        }
       },
       selectizeInput = {
         choices <- quetzio_split_options(item$options)
-        selectizeInput(input_id, label, choices = choices, width = item$width)
+        if (!is.null(item$placeholder) && !is.na(item$placeholder) && item$placeholder != "") {
+          choices <- c(setNames("", item$placeholder), choices)
+          selectizeInput(input_id, label, choices = choices, selected = "", width = item$width)
+        } else {
+          selectizeInput(input_id, label, choices = choices, width = item$width)
+        }
       },
       textInput(input_id, paste0(as.character(item$label), " (unsupported type: ", item$type, ")"))
+    )
+
+    ui_list[[idx]] <- tags$div(
+      class = paste("quetzio-question", paste0("type-", item$type)),
+      question_ui
     )
   }
 
