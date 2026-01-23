@@ -10,4 +10,5 @@ renv/python/
 .DS_Store
 Thumbs.db
 .env
+.Renviron
 exports/

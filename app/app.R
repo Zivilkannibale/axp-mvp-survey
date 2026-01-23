@@ -23,9 +23,20 @@ suppressPackageStartupMessages({
 load_questionnaire <- function() {
   cfg <- get_config(required = FALSE)
   df <- NULL
+  if (cfg$GOOGLE_SHEET_ID != "" && cfg$GOOGLE_SHEET_SHEETNAME != "") {
+    df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, cfg$GOOGLE_SHEET_SHEETNAME, cfg), silent = TRUE)
+    if (inherits(df, "try-error")) {
+      message("Google Sheets API load failed; falling back to CSV/local sample.")
+      df <- NULL
+    }
+  }
+
   if (cfg$GOOGLE_SHEET_CSV_URL != "") {
     df <- try(load_questionnaire_from_sheet(cfg$GOOGLE_SHEET_CSV_URL), silent = TRUE)
-    if (inherits(df, "try-error")) df <- NULL
+    if (inherits(df, "try-error")) {
+      message("Google Sheets CSV load failed; falling back to local sample.")
+      df <- NULL
+    }
   }
 
   if (is.null(df)) {

@@ -1,6 +1,12 @@
 # config.yml (optional template for future use)
 default:
   google_sheet_csv_url: "<paste google sheet published-as-csv URL here>"
+  google_sheet_id: "<gsheet id>"
+  google_sheet_sheetname: "<worksheet name>"
+  google_sheet_auth_json: "<path to service account json>"
+  google_sheet_auth_email: "<service account email>"
+  google_sheet_use_oauth: "false"
+  gargle_oauth_cache: "<path to gargle oauth cache>"
   app_base_url: "<https url>"
   osf_project_id: "<osf project id>"
 
