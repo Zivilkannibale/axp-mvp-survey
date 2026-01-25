@@ -31,6 +31,19 @@ See `config/.env.example` for required variables. Secrets must be stored in the 
 - Versioning is tracked via `instrument_id`, `instrument_version`, `language`, and `definition_hash`.
 - Optional UI columns include `width`, `placeholder`, `slider_left_label`, `slider_right_label`, and `slider_ticks`.
 
+### Collaborator setup
+
+Pick one of the following:
+
+- Service account (shared key, no prompts):
+  - Share the sheet with the service account email.
+  - Provide the JSON key file out-of-band (do not commit).
+  - Set `GOOGLE_SHEET_AUTH_JSON` and `GOOGLE_SHEET_USE_OAUTH=false`.
+- OAuth (per-user login):
+  - Share the sheet with each collaborator's Google account.
+  - Set `GOOGLE_SHEET_USE_OAUTH=true`.
+  - First run will prompt for Google login; token is cached.
+
 ## Slider input
 
 The questionnaire supports a custom `sliderInput` type. Required sliders must be touched; the UI sets a `__touched` flag when the slider moves. The UI rendering is vendored from shiny.quetzio (see `R/quetzio/NOTICE.txt`).
