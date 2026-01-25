@@ -20,11 +20,15 @@ suppressPackageStartupMessages({
   library(shiny)
 })
 
-load_questionnaire <- function() {
+load_questionnaire <- function(sheet_name_override = NULL) {
   cfg <- get_config(required = FALSE)
   df <- NULL
-  if (cfg$GOOGLE_SHEET_ID != "" && cfg$GOOGLE_SHEET_SHEETNAME != "") {
-    df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, cfg$GOOGLE_SHEET_SHEETNAME, cfg), silent = TRUE)
+  sheet_name <- cfg$GOOGLE_SHEET_SHEETNAME
+  if (!is.null(sheet_name_override) && sheet_name_override != "") {
+    sheet_name <- sheet_name_override
+  }
+  if (cfg$GOOGLE_SHEET_ID != "" && sheet_name != "") {
+    df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, sheet_name, cfg), silent = TRUE)
     if (inherits(df, "try-error")) {
       message("Google Sheets API load failed; falling back to CSV/local sample.")
       df <- NULL
@@ -45,13 +49,6 @@ load_questionnaire <- function() {
 
   df
 }
-
-questionnaire_df <- load_questionnaire()
-definition_hash <- compute_definition_hash(questionnaire_df)
-
-instrument_id <- questionnaire_df$instrument_id[1]
-instrument_version <- questionnaire_df$instrument_version[1]
-language <- questionnaire_df$language[1]
 
 ui <- fluidPage(
   tags$head(
@@ -83,6 +80,7 @@ ui <- fluidPage(
       .app-title { font-size: 28px; margin: 8px 0 12px; }
       .app-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 18px; box-shadow: 0 8px 24px rgba(25, 22, 70, 0.06); }
       .app-card h3 { margin-top: 0; font-size: 18px; }
+      .muted { color: var(--muted); font-size: 12px; margin-top: 6px; }
       .error-text { color: #b00020; font-weight: 600; margin-top: 10px; }
       .mandatory_star { color: var(--accent); margin-left: 4px; }
       .quetzio-question { padding: 14px 0 18px; border-bottom: 1px solid var(--border); }
@@ -122,6 +120,9 @@ ui <- fluidPage(
     div(
       class = "app-card",
       h3("Questions"),
+      textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
+      actionButton("reload_questionnaire", "Reload questionnaire"),
+      div(class = "muted", textOutput("load_status")),
       uiOutput("questionnaire_ui"),
       div(class = "error-text", textOutput("validation_error")),
       actionButton("submit", "Submit")
@@ -136,8 +137,75 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+  cfg <- get_config(required = FALSE)
+
+  format_load_status <- function(sheet_name, is_error = FALSE, message = NULL) {
+    timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    if (is_error) {
+      return(paste0("Load failed at ", timestamp, ": ", message))
+    }
+    if (is.null(sheet_name) || sheet_name == "") {
+      return(paste0("Loaded at ", timestamp, " from configured sheet tab."))
+    }
+    paste0("Loaded at ", timestamp, " from sheet tab: ", sheet_name)
+  }
+
+  update_questionnaire <- function(sheet_name_override = NULL) {
+    sheet_name <- cfg$GOOGLE_SHEET_SHEETNAME
+    if (!is.null(sheet_name_override) && sheet_name_override != "") {
+      sheet_name <- sheet_name_override
+    }
+
+    df <- NULL
+    if (sheet_name != "" && cfg$GOOGLE_SHEET_ID != "") {
+      df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, sheet_name, cfg), silent = TRUE)
+      if (inherits(df, "try-error")) {
+        load_status(format_load_status(sheet_name, is_error = TRUE, message = "Sheet tab not found (check spelling) or access denied."))
+        return(invisible(NULL))
+      }
+    } else {
+      df <- load_questionnaire()
+    }
+
+    questionnaire_df(df)
+    definition_hash(compute_definition_hash(df))
+    instrument_id(df$instrument_id[1])
+    instrument_version(df$instrument_version[1])
+    language(df$language[1])
+    load_status(format_load_status(sheet_name))
+  }
+
+  initial_df <- NULL
+  initial_status <- ""
+  if (cfg$GOOGLE_SHEET_ID != "" && cfg$GOOGLE_SHEET_SHEETNAME != "") {
+    initial_df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, cfg$GOOGLE_SHEET_SHEETNAME, cfg), silent = TRUE)
+    if (inherits(initial_df, "try-error")) {
+      initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME, is_error = TRUE, message = "Sheet tab not found (check spelling) or access denied.")
+      initial_df <- load_questionnaire()
+    } else {
+      initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME)
+    }
+  } else {
+    initial_df <- load_questionnaire()
+    initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME)
+  }
+
+  questionnaire_df <- reactiveVal(initial_df)
+  definition_hash <- reactiveVal(compute_definition_hash(initial_df))
+  instrument_id <- reactiveVal(initial_df$instrument_id[1])
+  instrument_version <- reactiveVal(initial_df$instrument_version[1])
+  language <- reactiveVal(initial_df$language[1])
+  load_status <- reactiveVal(initial_status)
+
+  observeEvent(input$reload_questionnaire, {
+    sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
+    update_questionnaire(sheet_name_override = sheet_name)
+  })
+
+  output$load_status <- renderText(load_status())
+
   output$questionnaire_ui <- renderUI({
-    questionnaire_ui_vendor(questionnaire_df)
+    questionnaire_ui_vendor(questionnaire_df())
   })
 
   validation_error <- reactiveVal("")
@@ -191,7 +259,7 @@ server <- function(input, output, session) {
       return()
     }
 
-    items <- questionnaire_df[questionnaire_df$active == 1, ]
+    items <- questionnaire_df()[questionnaire_df()$active == 1, ]
     required_items <- items[items$required == 1, ]
 
     missing <- c()
@@ -256,11 +324,11 @@ server <- function(input, output, session) {
         submission_id <- db_insert_submission(
           conn,
           list(
-            instrument_id = instrument_id,
-            instrument_version = instrument_version,
-            language = language,
+            instrument_id = instrument_id(),
+            instrument_version = instrument_version(),
+            language = language(),
             consent_version = "v1",
-            definition_hash = definition_hash
+            definition_hash = definition_hash()
           )
         )
         db_insert_responses_numeric(conn, submission_id, response_numeric)

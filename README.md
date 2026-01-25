@@ -23,6 +23,7 @@ See `config/.env.example` for required variables. Secrets must be stored in the 
 - Option A (no auth): publish your sheet as CSV and set `GOOGLE_SHEET_CSV_URL`.
 - Option B (API): set `GOOGLE_SHEET_ID` and `GOOGLE_SHEET_SHEETNAME`, then configure auth via
   `GOOGLE_SHEET_AUTH_JSON` (service account) or `GOOGLE_SHEET_USE_OAUTH=true` for cached OAuth.
+- The UI includes a reload button and optional sheet-tab override; page refresh also reloads the questionnaire.
 - API loading uses `googlesheets4` and is informed by shiny.quetzio (reference only).
 - If both are set, API loading is attempted first, then CSV, then the local sample.
 - For non-interactive runs, set `GARGLE_OAUTH_CACHE` to the folder holding the cached token.
