@@ -73,10 +73,19 @@ ui <- fluidPage(
         --slider-accent: #6b3df0;
         --slider-track: #e6e3f4;
       }
-      body { background: var(--bg); color: var(--text); font-family: var(--font-body); }
+      body {
+        background-color: var(--bg);
+        background-image: linear-gradient(180deg, rgba(249, 249, 251, 0.88), rgba(249, 249, 251, 0.88)), url('circe-bg.png');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: var(--text);
+        font-family: var(--font-body);
+      }
       h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.01em; }
       .app-shell { max-width: 720px; margin: 0 auto; padding: 28px 20px 48px; }
-      .app-eyebrow { text-transform: uppercase; font-size: 12px; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 6px; }
+      .app-logo { display: block; width: 120px; height: auto; margin: 0 0 12px; }
+      .app-eyebrow { text-transform: uppercase; font-size: 16px; letter-spacing: 0.18em; color: #000000; font-weight: 700; margin: -4px 0 6px; }
       .app-title { font-size: 28px; margin: 8px 0 12px; }
       .app-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 18px; box-shadow: 0 8px 24px rgba(25, 22, 70, 0.06); }
       .app-card h3 { margin-top: 0; font-size: 18px; }
@@ -106,33 +115,16 @@ ui <- fluidPage(
       .irs--shiny .irs-single { display: none; }
       .irs--shiny .irs-min, .irs--shiny .irs-max { display: none; }
       .irs--shiny .irs-grid, .irs--shiny .irs-grid-text { display: none; }
+      .nav-actions { display: flex; gap: 12px; margin-top: 18px; }
+      .nav-actions .btn { border-radius: 999px; padding: 8px 20px; font-weight: 600; }
     "))
   ),
   div(
     class = "app-shell",
+    tags$img(src = "circe-logo.png", alt = "Circe logo", class = "app-logo"),
     div(class = "app-eyebrow", "AXP survey"),
     div(class = "app-title", "Participant Questionnaire"),
-    div(
-      class = "app-card",
-      h3("Consent"),
-      checkboxInput("consent", "I agree to participate.", value = FALSE)
-    ),
-    div(
-      class = "app-card",
-      h3("Questions"),
-      textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
-      actionButton("reload_questionnaire", "Reload questionnaire"),
-      div(class = "muted", textOutput("load_status")),
-      uiOutput("questionnaire_ui"),
-      div(class = "error-text", textOutput("validation_error")),
-      actionButton("submit", "Submit")
-    ),
-    div(
-      class = "app-card",
-      h3("Feedback"),
-      plotOutput("radar_plot", height = "540px", width = "100%"),
-      verbatimTextOutput("submission_status")
-    )
+    uiOutput("page_ui")
   )
 )
 
@@ -196,6 +188,8 @@ server <- function(input, output, session) {
   instrument_version <- reactiveVal(initial_df$instrument_version[1])
   language <- reactiveVal(initial_df$language[1])
   load_status <- reactiveVal(initial_status)
+  current_step <- reactiveVal(1)
+  navigation_error <- reactiveVal("")
 
   observeEvent(input$reload_questionnaire, {
     sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
@@ -203,6 +197,101 @@ server <- function(input, output, session) {
   })
 
   output$load_status <- renderText(load_status())
+
+  observeEvent(input$next_step, {
+    step <- current_step()
+    if (step == 1) {
+      navigation_error("")
+      current_step(2)
+    } else if (step == 2) {
+      if (!isTRUE(input$consent)) {
+        navigation_error("Consent is required before continuing.")
+      } else {
+        navigation_error("")
+        current_step(3)
+      }
+    } else if (step == 3) {
+      navigation_error("")
+      current_step(4)
+    }
+  })
+
+  observeEvent(input$prev_step, {
+    step <- current_step()
+    if (step > 1) {
+      navigation_error("")
+      current_step(step - 1)
+    }
+  })
+
+  output$page_ui <- renderUI({
+    step <- current_step()
+
+    if (step == 1) {
+      return(tagList(
+        div(
+          class = "app-card",
+          h3("Introduction"),
+          p("Use this page to reload the questionnaire and select a specific sheet tab."),
+          textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
+          actionButton("reload_questionnaire", "Reload questionnaire"),
+          div(class = "muted", textOutput("load_status"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 2) {
+      return(tagList(
+        div(
+          class = "app-card",
+          h3("Consent"),
+          checkboxInput("consent", "I agree to participate.", value = FALSE),
+          div(class = "error-text", textOutput("navigation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 3) {
+      return(tagList(
+        div(
+          class = "app-card",
+          h3("Questions"),
+          uiOutput("questionnaire_ui"),
+          div(class = "error-text", textOutput("validation_error")),
+          actionButton("submit", "Submit")
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    tagList(
+      div(
+        class = "app-card",
+        h3("Feedback"),
+        plotOutput("radar_plot", height = "540px", width = "100%"),
+        verbatimTextOutput("submission_status")
+      ),
+      div(
+        class = "nav-actions",
+        actionButton("prev_step", "Back")
+      )
+    )
+  })
+
+  output$navigation_error <- renderText(navigation_error())
 
   output$questionnaire_ui <- renderUI({
     questionnaire_ui_vendor(questionnaire_df())
