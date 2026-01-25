@@ -103,3 +103,4 @@ Dependencies used:
 - Do not commit `.env` files or tokens.
 - `plot_scores_radar()` expects the 11-ASC canonical scale order; if your `scale_id` values differ, pass a named `scale_map` to map them to canonical labels.
 - Background p6m tiling logic is adapted from https://github.com/taru-u/taru-u.github.io (apps/symmetry).
+- The animated background lives in `app/www/p6m-bg.js` and supports a UI toggle ("Animated p6m waves").
