@@ -102,3 +102,4 @@ Dependencies used:
 - IP addresses are not collected or stored.
 - Do not commit `.env` files or tokens.
 - `plot_scores_radar()` expects the 11-ASC canonical scale order; if your `scale_id` values differ, pass a named `scale_map` to map them to canonical labels.
+- Background p6m tiling logic is adapted from https://github.com/taru-u/taru-u.github.io (apps/symmetry).

@@ -58,6 +58,7 @@ ui <- fluidPage(
       rel = "stylesheet",
       href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap"
     ),
+    tags$script(src = "p6m-bg.js", defer = "defer"),
     tags$style(HTML("
       :root {
         --accent: #6b3df0;
@@ -75,15 +76,13 @@ ui <- fluidPage(
       }
       body {
         background-color: var(--bg);
-        background-image: linear-gradient(180deg, rgba(249, 249, 251, 0.88), rgba(249, 249, 251, 0.88)), url('circe-bg.png');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
         color: var(--text);
         font-family: var(--font-body);
       }
       h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.01em; }
-      .app-shell { max-width: 720px; margin: 0 auto; padding: 28px 20px 48px; }
+      #p6m-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+      #p6m-layer canvas { width: 100%; height: 100%; display: block; }
+      .app-shell { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 28px 20px 48px; }
       .app-logo { display: block; width: 120px; height: auto; margin: 0 0 12px; }
       .app-eyebrow { text-transform: uppercase; font-size: 16px; letter-spacing: 0.18em; color: #000000; font-weight: 700; margin: -4px 0 6px; }
       .app-title { font-size: 28px; margin: 8px 0 12px; }
@@ -119,6 +118,7 @@ ui <- fluidPage(
       .nav-actions .btn { border-radius: 999px; padding: 8px 20px; font-weight: 600; }
     "))
   ),
+  div(id = "p6m-layer"),
   div(
     class = "app-shell",
     tags$img(src = "circe-logo.png", alt = "Circe logo", class = "app-logo"),
@@ -198,6 +198,10 @@ server <- function(input, output, session) {
 
   output$load_status <- renderText(load_status())
 
+  observeEvent(input$animated_bg, {
+    session$sendCustomMessage("p6mToggle", list(enabled = isTRUE(input$animated_bg)))
+  }, ignoreInit = FALSE)
+
   observeEvent(input$next_step, {
     step <- current_step()
     if (step == 1) {
@@ -233,6 +237,7 @@ server <- function(input, output, session) {
           class = "app-card",
           h3("Introduction"),
           p("Use this page to reload the questionnaire and select a specific sheet tab."),
+          checkboxInput("animated_bg", "Animated p6m waves", value = TRUE),
           textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
           actionButton("reload_questionnaire", "Reload questionnaire"),
           div(class = "muted", textOutput("load_status"))
