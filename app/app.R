@@ -278,9 +278,33 @@ ui <- fluidPage(
         });
 
         if (window.Shiny) {
+          function waitForUIAndFonts(cb) {
+            var tries = 0;
+            function check() {
+              tries += 1;
+              var cardReady = document.querySelector('.app-card') !== null;
+              if (cardReady) {
+                if (document.fonts && document.fonts.ready) {
+                  document.fonts.ready.then(cb).catch(cb);
+                } else {
+                  cb();
+                }
+                return;
+              }
+              if (tries < 60) {
+                requestAnimationFrame(check);
+              } else {
+                cb();
+              }
+            }
+            check();
+          }
+
           Shiny.addCustomMessageHandler('bootReady', function() {
             if (bootTimeout) clearTimeout(bootTimeout);
-            setBootProgress(100);
+            waitForUIAndFonts(function() {
+              setBootProgress(100);
+            });
           });
           Shiny.addCustomMessageHandler('bootProgress', function(msg) {
             setBootProgress(msg.pct || 0);
@@ -573,7 +597,7 @@ server <- function(input, output, session) {
       if (!is.null(p)) print(p)
     }, height = 540, res = 120, antialias = "default")
 
-  outputOptions(output, "radar_plot", suspendWhenHidden = FALSE)
+  outputOptions(output, "radar_plot", suspendWhenHidden = TRUE)
   outputOptions(output, "questionnaire_ui", suspendWhenHidden = FALSE)
 
   observeEvent(input$submit, {
