@@ -56,8 +56,10 @@ ui <- fluidPage(
     tags$link(rel = "preconnect", href = "https://fonts.gstatic.com", crossorigin = "anonymous"),
     tags$link(
       rel = "stylesheet",
-      href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap"
+      href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=Press+Start+2P&display=swap"
     ),
+    tags$link(rel = "preload", href = "circe-logo.png", as = "image"),
+    tags$link(rel = "preload", href = "p6m-bg.js", as = "script"),
     tags$script(src = "p6m-bg.js", defer = "defer"),
     tags$style(HTML("
       :root {
@@ -116,7 +118,192 @@ ui <- fluidPage(
       .irs--shiny .irs-grid, .irs--shiny .irs-grid-text { display: none; }
       .nav-actions { display: flex; gap: 12px; margin-top: 18px; }
       .nav-actions .btn { border-radius: 999px; padding: 8px 20px; font-weight: 600; }
+      .boot-overlay, .busy-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(11, 12, 16, 0.92);
+        color: #9bff6a;
+        font-family: 'Press Start 2P', 'Courier New', monospace;
+        letter-spacing: 0.05em;
+        transition: opacity 400ms ease, visibility 400ms ease;
+      }
+      .boot-overlay.hidden, .busy-overlay.hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+      .boot-terminal {
+        width: min(620px, 94vw);
+        border: 1px solid rgba(155, 255, 106, 0.5);
+        border-radius: 16px;
+        background: rgba(4, 6, 8, 0.85);
+        padding: 18px 20px 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      }
+      .boot-title { font-size: 10px; text-transform: uppercase; color: #6bdc58; }
+      .boot-lines { display: none; }
+      .boot-progress {
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(100, 255, 120, 0.18);
+        overflow: hidden;
+      }
+      .boot-progress span {
+        display: block;
+        height: 100%;
+        width: 10%;
+        background: linear-gradient(90deg, #66ff7a, #c6ff8f);
+        transition: width 240ms ease;
+      }
+      .boot-foot { margin-top: 12px; font-size: 10px; color: #6bdc58; }
+      .boot-quip {
+        font-size: 13px;
+        line-height: 1.6;
+        color: #9bff6a;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        margin-top: 14px;
+        text-shadow: 0 0 8px rgba(155, 255, 106, 0.25);
+      }
+      .busy-overlay {
+        background: rgba(12, 14, 20, 0.6);
+        z-index: 9998;
+      }
+      .busy-pill {
+        padding: 10px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(120, 140, 200, 0.5);
+        background: rgba(8, 10, 16, 0.75);
+        font-size: 12px;
+        text-transform: uppercase;
+        color: #a7b1e9;
+      }
     "))
+    ,
+    tags$script(HTML("
+      (function() {
+        var boot = null;
+        var busy = null;
+        var bootHidden = false;
+        var bootBar = null;
+        var bootPct = null;
+        var bootTimeout = null;
+        var bootTarget = 5;
+        var bootCurrent = 0;
+        var bootTick = null;
+
+        function hideBoot() {
+          if (bootHidden) return;
+          bootHidden = true;
+          if (boot) boot.classList.add('hidden');
+        }
+
+        function setBootProgress(pct) {
+          bootTarget = Math.max(0, Math.min(100, pct || 0));
+        }
+
+        function bootLoop() {
+          if (!bootBar || !bootPct || !boot) return;
+          if (bootTarget < 25) {
+            bootTarget = Math.min(25, bootTarget + 0.08);
+          }
+          var delta = bootTarget - bootCurrent;
+          var step = Math.max(0.6, Math.abs(delta) * 0.08);
+          if (Math.abs(delta) < 0.3) {
+            bootCurrent = bootTarget;
+          } else {
+            bootCurrent += Math.sign(delta) * step;
+          }
+          var pct = Math.max(0, Math.min(100, bootCurrent));
+          bootBar.style.width = pct + '%';
+          bootPct.textContent = Math.round(pct) + '%';
+          boot.style.opacity = String(Math.max(0, Math.min(1, 1 - (pct / 100))));
+          if (pct >= 100) {
+            hideBoot();
+            return;
+          }
+          bootTick = requestAnimationFrame(bootLoop);
+        }
+
+        function showBusy() {
+          if (!busy) return;
+          if (!bootHidden) return;
+          busy.classList.remove('hidden');
+        }
+
+        function hideBusy() {
+          if (!busy) return;
+          busy.classList.add('hidden');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+          boot = document.getElementById('boot-overlay');
+          busy = document.getElementById('busy-overlay');
+          bootBar = document.getElementById('boot-progress-bar');
+          bootPct = document.getElementById('boot-progress-pct');
+
+          var assets = ['circe-logo.png', 'p6m-bg.js'];
+          assets.forEach(function(src) {
+            var link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = src.endsWith('.js') ? 'script' : 'image';
+            link.href = src;
+            document.head.appendChild(link);
+          });
+
+          if (boot) boot.classList.remove('hidden');
+          if (busy) busy.classList.add('hidden');
+
+          // Failsafe in case Shiny events don't fire
+          bootTimeout = setTimeout(function() {
+            setBootProgress(100);
+          }, 4000);
+          bootLoop();
+          setBootProgress(12);
+        });
+
+        document.addEventListener('shiny:connected', function() {
+          setBootProgress(55);
+        });
+
+        document.addEventListener('shiny:busy', function() {
+          showBusy();
+        });
+
+        document.addEventListener('shiny:idle', function() {
+          hideBusy();
+        });
+
+        if (window.Shiny) {
+          Shiny.addCustomMessageHandler('bootReady', function() {
+            if (bootTimeout) clearTimeout(bootTimeout);
+            setBootProgress(100);
+          });
+          Shiny.addCustomMessageHandler('bootProgress', function(msg) {
+            setBootProgress(msg.pct || 0);
+          });
+        }
+      })();
+    "))
+  ),
+  div(
+    id = "boot-overlay",
+    class = "boot-overlay",
+    div(
+      class = "boot-terminal",
+      div(class = "boot-title", "AXP / SYSTEM BOOT"),
+      div(class = "boot-quip", "PLEASE WAIT WHILE THE MACHINE ELVES SCRAMBLE FOR THEIR SCIENCE HATS"),
+      div(class = "boot-progress", tags$span(id = "boot-progress-bar")),
+      div(class = "boot-foot", tags$span(id = "boot-progress-pct", "0%"))
+    )
+  ),
+  div(
+    id = "busy-overlay",
+    class = "busy-overlay hidden",
+    div(class = "busy-pill", "Loading")
   ),
   div(id = "p6m-layer"),
   div(
@@ -130,6 +317,10 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   cfg <- get_config(required = FALSE)
+  boot_progress <- function(pct) {
+    session$sendCustomMessage("bootProgress", list(pct = pct))
+  }
+  boot_progress(10)
 
   format_load_status <- function(sheet_name, is_error = FALSE, message = NULL) {
     timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
@@ -168,8 +359,10 @@ server <- function(input, output, session) {
   }
 
   initial_df <- NULL
+  boot_progress(25)
   initial_status <- ""
   if (cfg$GOOGLE_SHEET_ID != "" && cfg$GOOGLE_SHEET_SHEETNAME != "") {
+    boot_progress(35)
     initial_df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, cfg$GOOGLE_SHEET_SHEETNAME, cfg), silent = TRUE)
     if (inherits(initial_df, "try-error")) {
       initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME, is_error = TRUE, message = "Sheet tab not found (check spelling) or access denied.")
@@ -178,11 +371,14 @@ server <- function(input, output, session) {
       initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME)
     }
   } else {
+    boot_progress(35)
     initial_df <- load_questionnaire()
     initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME)
   }
+  boot_progress(65)
 
   questionnaire_df <- reactiveVal(initial_df)
+  boot_progress(80)
   definition_hash <- reactiveVal(compute_definition_hash(initial_df))
   instrument_id <- reactiveVal(initial_df$instrument_id[1])
   instrument_version <- reactiveVal(initial_df$instrument_version[1])
@@ -201,6 +397,11 @@ server <- function(input, output, session) {
   observeEvent(input$animated_bg, {
     session$sendCustomMessage("p6mToggle", list(enabled = isTRUE(input$animated_bg)))
   }, ignoreInit = FALSE)
+
+  session$onFlushed(function() {
+    boot_progress(100)
+    session$sendCustomMessage("bootReady", list(ready = TRUE))
+  }, once = TRUE)
 
   observeEvent(input$next_step, {
     step <- current_step()
