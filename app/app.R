@@ -285,6 +285,12 @@ ui <- fluidPage(
           Shiny.addCustomMessageHandler('bootProgress', function(msg) {
             setBootProgress(msg.pct || 0);
           });
+          Shiny.addCustomMessageHandler('busyShow', function() {
+            if (busy) busy.classList.remove('hidden');
+          });
+          Shiny.addCustomMessageHandler('busyHide', function() {
+            if (busy) busy.classList.add('hidden');
+          });
         }
       })();
     "))
@@ -403,21 +409,31 @@ server <- function(input, output, session) {
     session$sendCustomMessage("bootReady", list(ready = TRUE))
   }, once = TRUE)
 
+  show_transition_busy <- function() {
+    session$sendCustomMessage("busyShow", list())
+    session$onFlushed(function() {
+      session$sendCustomMessage("busyHide", list())
+    }, once = TRUE)
+  }
+
   observeEvent(input$next_step, {
     step <- current_step()
     if (step == 1) {
       navigation_error("")
       current_step(2)
+      show_transition_busy()
     } else if (step == 2) {
       if (!isTRUE(input$consent)) {
         navigation_error("Consent is required before continuing.")
       } else {
         navigation_error("")
         current_step(3)
+        show_transition_busy()
       }
     } else if (step == 3) {
       navigation_error("")
       current_step(4)
+      show_transition_busy()
     }
   })
 
@@ -426,6 +442,7 @@ server <- function(input, output, session) {
     if (step > 1) {
       navigation_error("")
       current_step(step - 1)
+      show_transition_busy()
     }
   })
 
@@ -487,6 +504,7 @@ server <- function(input, output, session) {
       div(
         class = "app-card",
         h3("Feedback"),
+        div(id = "feedback_loading", class = "muted", "Preparing feedback..."),
         plotOutput("radar_plot", height = "540px", width = "100%"),
         verbatimTextOutput("submission_status")
       ),
@@ -499,8 +517,18 @@ server <- function(input, output, session) {
 
   output$navigation_error <- renderText(navigation_error())
 
+  questionnaire_ui_cached <- reactiveVal(NULL)
+  observeEvent(questionnaire_df(), {
+    questionnaire_ui_cached(questionnaire_ui_vendor(questionnaire_df()))
+  }, ignoreInit = FALSE)
+
   output$questionnaire_ui <- renderUI({
-    questionnaire_ui_vendor(questionnaire_df())
+    cached <- questionnaire_ui_cached()
+    if (is.null(cached)) {
+      div(class = "muted", "Loading questions...")
+    } else {
+      cached
+    }
   })
 
   validation_error <- reactiveVal("")
@@ -544,6 +572,9 @@ server <- function(input, output, session) {
       p <- plot_scores_radar(scores, peer_points_df = peer_points)
       if (!is.null(p)) print(p)
     }, height = 540, res = 120, antialias = "default")
+
+  outputOptions(output, "radar_plot", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui", suspendWhenHidden = FALSE)
 
   observeEvent(input$submit, {
     validation_error("")
