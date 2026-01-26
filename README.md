@@ -24,7 +24,7 @@ See `config/.env.example` for required variables. Secrets must be stored in the 
 - Option B (API): set `GOOGLE_SHEET_ID` and `GOOGLE_SHEET_SHEETNAME`, then configure auth via
   `GOOGLE_SHEET_AUTH_JSON` (service account) or `GOOGLE_SHEET_USE_OAUTH=true` for cached OAuth.
 - The UI includes a reload button and optional sheet-tab override; page refresh also reloads the questionnaire.
-- API loading uses `googlesheets4` and is informed by shiny.quetzio (reference only).
+- API loading uses `googlesheets4`.
 - If both are set, API loading is attempted first, then CSV, then the local sample.
 - For non-interactive runs, set `GARGLE_OAUTH_CACHE` to the folder holding the cached token.
 - Required columns are listed in `docs/questionnaire_schema.md`.
@@ -46,13 +46,21 @@ Pick one of the following:
 
 ## Slider input
 
-The questionnaire supports a custom `sliderInput` type. Required sliders must be touched; the UI sets a `__touched` flag when the slider moves. The UI rendering is vendored from shiny.quetzio (see `R/quetzio/NOTICE.txt`).
+The questionnaire supports a custom `sliderInput` type. Required sliders must be touched; the UI sets a `__touched` flag when the slider moves. The UI generator is vendored in `R/quetzio/` (see `R/quetzio/NOTICE.txt`).
 
 ## Database and STRATO deploy notes
 
 - Configure PostgreSQL credentials in the environment.
 - `sql/001_init.sql` creates required tables.
 - Deploy behind nginx with Shiny Server or ShinyProxy. Ensure HTTPS and set `APP_BASE_URL`.
+
+### Current server deployment (STRATO)
+
+- App path: `/srv/shiny-server/axp-mvp-survey/app`
+- Service account JSON: `/srv/shiny-server/axp-mvp-survey/secret/axp-mvp-3ec693c04c81.json`
+- App env: `/srv/shiny-server/axp-mvp-survey/app/.Renviron` (contains Google Sheets config)
+- Shiny Server listens on `http://85.215.90.33:3838/axp-mvp-survey/app/`
+- HTTPS is expected to be added via Traefik + DNS (e.g., `axp.circe-science.de`)
 
 ## Scoring and norms
 
@@ -84,7 +92,7 @@ renv::init()
 
 Dependencies used:
 - shiny
-- vendored shiny.quetzio UI components
+- vendored UI components in `R/quetzio/`
 - httr
 - jsonlite
 - DBI
