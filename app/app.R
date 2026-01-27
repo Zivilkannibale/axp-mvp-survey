@@ -590,10 +590,10 @@ server <- function(input, output, session) {
   output$validation_error <- renderText(validation_error())
   output$submission_status <- renderText(submission_status())
 
-    output$radar_plot <- renderPlot({
-      scores <- latest_scores()
+  output$radar_plot <- renderPlot({
+    scores <- latest_scores()
 
-      if (nrow(scores) == 0) {
+    if (nrow(scores) == 0) {
         mock_scales <- c(
           "Experience of Unity",
           "Spiritual Experience",
@@ -621,9 +621,31 @@ server <- function(input, output, session) {
         stringsAsFactors = FALSE
       )
 
-      p <- plot_scores_radar(scores, peer_points_df = peer_points)
-      if (!is.null(p)) print(p)
-    }, height = 540, res = 120, antialias = "default")
+    width <- session$clientData$output_radar_plot_width
+    if (is.null(width) || is.na(width) || width <= 0) {
+      width <- 700
+    }
+    base_size <- max(8, min(12, width / 55))
+    is_phone <- width < 420
+    label_width <- if (is_phone) 16 else 20
+    label_radius <- if (is_phone) 1.08 else 1.14
+    label_size <- if (is_phone) base_size * 0.165 else NULL
+    p <- plot_scores_radar(
+      scores,
+      peer_points_df = peer_points,
+      base_size = base_size,
+      label_size = label_size,
+      label_width = label_width,
+      label_radius = label_radius
+    )
+    if (!is.null(p)) print(p)
+  }, height = function() {
+    width <- session$clientData$output_radar_plot_width
+    if (is.null(width) || is.na(width) || width <= 0) {
+      return(540)
+    }
+    max(360, min(540, width * 0.85))
+  }, res = 120, antialias = "default")
 
   outputOptions(output, "radar_plot", suspendWhenHidden = TRUE)
   outputOptions(output, "questionnaire_ui", suspendWhenHidden = FALSE)
