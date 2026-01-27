@@ -5,7 +5,9 @@ plot_scores_radar <- function(scores_df,
                               scale_map = NULL,
                               label_width = 20,
                               label_radius = 1.14,
-                              jitter_max = 0.03) {
+                              jitter_max = 0.03,
+                              base_size = 10,
+                              label_size = NULL) {
   if (is.null(scores_df) || nrow(scores_df) == 0) return(NULL)
 
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -157,6 +159,9 @@ plot_scores_radar <- function(scores_df,
   grey <- "#7b7f8c"
 
   limit <- label_radius + 0.15
+  if (is.null(label_size)) {
+    label_size <- base_size * 0.33
+  }
 
   p <- ggplot2::ggplot() +
     ggplot2::geom_path(
@@ -209,7 +214,7 @@ plot_scores_radar <- function(scores_df,
       data = label_df,
       ggplot2::aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust),
       color = text_color,
-      size = 3.3,
+      size = label_size,
       fontface = "bold",
       lineheight = 0.95
     ) +
@@ -228,7 +233,7 @@ plot_scores_radar <- function(scores_df,
     ggplot2::theme(
       legend.position = "bottom",
       legend.box = "horizontal",
-      legend.text = ggplot2::element_text(color = text_color, size = 10),
+      legend.text = ggplot2::element_text(color = text_color, size = base_size),
       plot.margin = ggplot2::margin(10, 15, 30, 15)
     )
 
