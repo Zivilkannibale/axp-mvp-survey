@@ -50,6 +50,15 @@ load_questionnaire <- function(sheet_name_override = NULL) {
   df
 }
 
+env_flag <- function(value, default = TRUE) {
+  if (is.null(value) || value == "") return(default)
+  tolower(value) %in% c("1", "true", "yes", "y", "on")
+}
+
+cfg_ui <- get_config(required = FALSE)
+P6M_ENABLED <- env_flag(cfg_ui$P6M_ENABLED, TRUE)
+P6M_ANIMATED_DEFAULT <- env_flag(cfg_ui$P6M_ANIMATED, TRUE)
+
 ui <- fluidPage(
   tags$head(
     tags$link(rel = "preconnect", href = "https://fonts.googleapis.com"),
@@ -59,8 +68,8 @@ ui <- fluidPage(
       href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=Press+Start+2P&display=swap"
     ),
     tags$link(rel = "preload", href = "circe-logo.png", as = "image"),
-    tags$link(rel = "preload", href = "p6m-bg.js", as = "script"),
-    tags$script(src = "p6m-bg.js", defer = "defer"),
+    if (P6M_ENABLED) tags$link(rel = "preload", href = "p6m-bg.js", as = "script"),
+    if (P6M_ENABLED) tags$script(src = "p6m-bg.js", defer = "defer"),
     tags$style(HTML("
       :root {
         --accent: #6b3df0;
@@ -335,7 +344,7 @@ ui <- fluidPage(
     class = "busy-overlay hidden",
     div(class = "busy-pill", "Loading")
   ),
-  div(id = "p6m-layer"),
+  if (P6M_ENABLED) div(id = "p6m-layer"),
   div(
     class = "app-shell",
     tags$img(src = "circe-logo.png", alt = "Circe logo", class = "app-logo"),
@@ -479,7 +488,7 @@ server <- function(input, output, session) {
           class = "app-card",
           h3("Introduction"),
           p("Use this page to reload the questionnaire and select a specific sheet tab."),
-          checkboxInput("animated_bg", "Animated p6m waves", value = TRUE),
+          if (P6M_ENABLED) checkboxInput("animated_bg", "Animated p6m waves", value = P6M_ANIMATED_DEFAULT),
           textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
           actionButton("reload_questionnaire", "Reload questionnaire"),
           div(class = "muted", textOutput("load_status"))

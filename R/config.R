@@ -13,7 +13,9 @@ get_config <- function(required = TRUE) {
     "STRATO_PG_PORT",
     "OSF_PROJECT_ID",
     "OSF_TOKEN",
-    "APP_BASE_URL"
+    "APP_BASE_URL",
+    "P6M_ENABLED",
+    "P6M_ANIMATED"
   )
 
   values <- lapply(names, function(nm) Sys.getenv(nm, unset = ""))
@@ -25,7 +27,9 @@ get_config <- function(required = TRUE) {
     "GOOGLE_SHEET_SHEETNAME",
     "GOOGLE_SHEET_AUTH_JSON",
     "GOOGLE_SHEET_AUTH_EMAIL",
-    "GOOGLE_SHEET_USE_OAUTH"
+    "GOOGLE_SHEET_USE_OAUTH",
+    "P6M_ENABLED",
+    "P6M_ANIMATED"
   )
   missing <- setdiff(names[cfg == ""], optional)
   if (required && length(missing) > 0) {
