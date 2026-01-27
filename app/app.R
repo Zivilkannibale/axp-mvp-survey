@@ -217,10 +217,87 @@ ui <- fluidPage(
         width: 100%;
         height: 100%;
         display: block;
+        cursor: crosshair;
+        touch-action: none;
+        background-color: #f7f9ff;
         background-image:
-          linear-gradient(transparent 75%, rgba(120, 130, 160, 0.18) 75%),
-          linear-gradient(90deg, transparent 75%, rgba(120, 130, 160, 0.18) 75%);
-        background-size: 25% 25%;
+          linear-gradient(to right, rgba(80, 90, 120, 0.18) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(80, 90, 120, 0.18) 1px, transparent 1px);
+        background-size: calc(100% / var(--tracer-cols)) calc(100% / var(--tracer-rows));
+        background-position: 0 0;
+        background-repeat: repeat;
+      }
+      .experience-tracer-top-label {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        color: rgba(40, 45, 60, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .experience-tracer-ticks {
+        position: absolute;
+        inset: 0;
+        padding: 12px 16px 14px 16px;
+        box-sizing: border-box;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .experience-tracer-ticks-x,
+      .experience-tracer-ticks-y {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+      .experience-tracer-ticks-y {
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+      }
+      .tick-label {
+        position: absolute;
+        font-size: 9px;
+        color: rgba(40, 45, 60, 0.6);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .tick-label-x {
+        bottom: 0;
+        transform: translate(-50%, 0);
+      }
+      .tick-label-y {
+        left: 0;
+        transform: translate(0, 50%);
+      }
+      .experience-tracer-ticks-x .tick-label-x:first-child {
+        left: 0 !important;
+        transform: translate(0, 0);
+      }
+      .experience-tracer-ticks-x .tick-label-x:last-child {
+        left: auto !important;
+        right: 0;
+        transform: translate(0, 0);
+      }
+      .experience-tracer-ticks-y .tick-label-y:first-child {
+        bottom: 0 !important;
+        transform: translate(0, 0);
+      }
+      .experience-tracer-ticks-y .tick-label-y:last-child {
+        bottom: auto !important;
+        top: 0;
+        transform: translate(0, 0);
+      }
+      @media (max-width: 520px) {
+        .experience-tracer-top-label { font-size: 9px; }
+        .tick-label { font-size: 8px; }
+        .tick-label-x:nth-child(odd) { display: none; }
+        .tick-label-y:nth-child(odd) { display: none; }
       }
       .experience-tracer-actions {
         display: flex;
@@ -595,21 +672,22 @@ server <- function(input, output, session) {
       ))
     }
 
-    if (step == 4) {
-      return(tagList(
-        div(
-          class = "app-card",
-          h3("Experience Tracer"),
-          uiOutput("tracer_ui"),
-          div(class = "error-text", textOutput("validation_error"))
-        ),
-        div(
-          class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("submit", "Submit")
-        )
-      ))
-    }
+      if (step == 4) {
+        return(tagList(
+          div(
+            class = "app-card",
+            h3("Experience Tracer"),
+            uiOutput("tracer_ui"),
+            div(class = "error-text", textOutput("validation_error"))
+          ),
+          div(
+            class = "nav-actions",
+            actionButton("prev_step", "Back"),
+            actionButton("next_step", "Continue"),
+            actionButton("submit", "Submit")
+          )
+        ))
+      }
 
     tagList(
       div(

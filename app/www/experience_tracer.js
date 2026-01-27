@@ -18,7 +18,9 @@
     if (rect.width === 0 || rect.height === 0) return;
     canvas.width = rect.width * ratio;
     canvas.height = rect.height * ratio;
-    canvas.getContext("2d").scale(ratio, ratio);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(ratio, ratio);
     if (pad && pad._data && pad._data.length) {
       pad.fromData(pad._data);
     }
@@ -26,8 +28,9 @@
 
   function flattenPoints(strokes, canvas) {
     const pts = [];
-    const w = canvas.width || 1;
-    const h = canvas.height || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width || 1;
+    const h = rect.height || 1;
     strokes.forEach((stroke) => {
       stroke.points.forEach((pt) => {
         const x = clamp(pt.x / w, 0, 1);
@@ -131,6 +134,12 @@
 
   document.addEventListener("DOMContentLoaded", initAll);
   document.addEventListener("shiny:connected", initAll);
+  document.addEventListener("shiny:idle", initAll);
+
+  const observer = new MutationObserver(() => {
+    initAll();
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 
   window.addEventListener("resize", () => {
     tracers.forEach((pad, wrapper) => {

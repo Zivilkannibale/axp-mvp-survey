@@ -7,10 +7,28 @@ experience_tracer_input <- function(input_id,
                                     y_min = 0,
                                     y_max = 100,
                                     samples = 101,
-                                    min_points = 10) {
+                                    min_points = 10,
+                                    x_label = "Time",
+                                    y_label = "Intensity",
+                                    top_label = NULL,
+                                    grid_cols = 10,
+                                    grid_rows = 10) {
   if (is.null(width) || is.na(width) || width == "") width <- "100%"
   if (is.null(height) || is.na(height)) height <- 240
   if (is.null(instruction) || is.na(instruction)) instruction <- ""
+  if (is.null(x_label) || is.na(x_label) || x_label == "") x_label <- "Time"
+  if (is.null(y_label) || is.na(y_label) || y_label == "") y_label <- "Intensity"
+  if (is.null(top_label) || is.na(top_label) || top_label == "") top_label <- label
+  if (is.null(grid_cols) || is.na(grid_cols) || grid_cols < 2) grid_cols <- 10
+  if (is.null(grid_rows) || is.na(grid_rows) || grid_rows < 2) grid_rows <- 10
+
+  y_ticks <- seq(y_min, y_max, length.out = grid_rows + 1)
+  if (!is.finite(duration_seconds) || is.na(duration_seconds) || duration_seconds <= 0) {
+    x_max <- 10
+  } else {
+    x_max <- duration_seconds / 60
+  }
+  x_ticks <- seq(0, x_max, length.out = grid_cols + 1)
 
   div(
     class = "experience-tracer",
@@ -25,8 +43,30 @@ experience_tracer_input <- function(input_id,
     if (instruction != "") tags$div(class = "experience-tracer-instruction", instruction),
     tags$div(
       class = "experience-tracer-canvas-wrap",
-      style = paste0("height:", height, "px;"),
-      tags$canvas(class = "experience-tracer-canvas")
+      style = paste0("height:", height, "px; --tracer-cols:", grid_cols, "; --tracer-rows:", grid_rows, ";"),
+      tags$canvas(class = "experience-tracer-canvas"),
+      tags$div(class = "experience-tracer-top-label", top_label),
+      tags$div(
+        class = "experience-tracer-ticks",
+        tags$div(
+          class = "experience-tracer-ticks-x",
+          lapply(seq_along(x_ticks), function(i) {
+            pct <- (i - 1) / grid_cols * 100
+            val <- x_ticks[[i]]
+            lab <- paste0(format(round(val, 1), trim = TRUE, nsmall = ifelse(val %% 1 == 0, 0, 1)), " min")
+            tags$span(class = "tick-label tick-label-x", style = paste0("left:", pct, "%;"), lab)
+          })
+        ),
+        tags$div(
+          class = "experience-tracer-ticks-y",
+          lapply(seq_along(y_ticks), function(i) {
+            pct <- (i - 1) / grid_rows * 100
+            val <- y_ticks[[i]]
+            lab <- format(round(val, 0), trim = TRUE)
+            tags$span(class = "tick-label tick-label-y", style = paste0("bottom:", pct, "%;"), lab)
+          })
+        )
+      )
     ),
     tags$div(
       class = "experience-tracer-actions",

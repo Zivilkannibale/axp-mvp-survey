@@ -62,6 +62,11 @@ quetzio_df_to_items <- function(df) {
     item$tracer_height <- quetzio_null_def(get_col("tracer_height"), 240)
     item$tracer_min_points <- quetzio_null_def(get_col("tracer_min_points"), 10)
     item$tracer_instruction <- quetzio_null_def(get_col("tracer_instruction"), "")
+    item$tracer_x_label <- quetzio_null_def(get_col("tracer_x_label"), "Time")
+    item$tracer_y_label <- quetzio_null_def(get_col("tracer_y_label"), "Intensity")
+    item$tracer_top_label <- quetzio_null_def(get_col("tracer_top_label"), item$label)
+    item$tracer_grid_cols <- quetzio_null_def(get_col("tracer_grid_cols"), 10)
+    item$tracer_grid_rows <- quetzio_null_def(get_col("tracer_grid_rows"), 10)
 
     items[[input_id]] <- item
   }
@@ -170,7 +175,12 @@ quetzio_generate_ui <- function(items) {
           y_min = item$tracer_y_min,
           y_max = item$tracer_y_max,
           samples = item$tracer_samples,
-          min_points = item$tracer_min_points
+          min_points = item$tracer_min_points,
+          x_label = item$tracer_x_label,
+          y_label = item$tracer_y_label,
+          top_label = item$tracer_top_label,
+          grid_cols = item$tracer_grid_cols,
+          grid_rows = item$tracer_grid_rows
         )
       },
       textInput(input_id, paste0(as.character(item$label), " (unsupported type: ", item$type, ")"))

@@ -30,6 +30,7 @@ See `config/.env.example` for required variables. Secrets must be stored in the 
 - Required columns are listed in `docs/questionnaire_schema.md`.
 - Versioning is tracked via `instrument_id`, `instrument_version`, `language`, and `definition_hash`.
 - Optional UI columns include `width`, `placeholder`, `slider_left_label`, `slider_right_label`, and `slider_ticks`.
+- The experience tracer uses additional optional columns (see below).
 
 ### Collaborator setup
 
@@ -47,6 +48,22 @@ Pick one of the following:
 ## Slider input
 
 The questionnaire supports a custom `sliderInput` type. Required sliders must be touched; the UI sets a `__touched` flag when the slider moves. The UI generator is vendored in `R/quetzio/` (see `R/quetzio/NOTICE.txt`).
+
+## Experience tracer input
+
+The questionnaire supports a custom `experience_tracer` type (drawn curve over time). It records raw points and a resampled vector on submit.
+
+Optional columns for tracer configuration (all optional):
+- `tracer_instruction` (string)
+- `tracer_duration_seconds` (number; used to label the x-axis in minutes)
+- `tracer_y_min`, `tracer_y_max` (number; default 0..100)
+- `tracer_samples` (number; resampled vector length)
+- `tracer_height` (number; canvas height in px)
+- `tracer_min_points` (number; minimum points for required validation)
+- `tracer_top_label` (string; top-right label inside the canvas)
+- `tracer_grid_cols`, `tracer_grid_rows` (number; grid resolution)
+
+The local reference row lives in `docs/sample_questionnaire.csv`. You can copy its columns/values into the Google Sheet to update the schema.
 
 ## Database and STRATO deploy notes
 
