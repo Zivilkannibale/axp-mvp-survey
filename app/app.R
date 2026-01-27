@@ -56,8 +56,8 @@ env_flag <- function(value, default = TRUE) {
 }
 
 cfg_ui <- get_config(required = FALSE)
-P6M_ENABLED <- env_flag(cfg_ui$P6M_ENABLED, TRUE)
-P6M_ANIMATED_DEFAULT <- env_flag(cfg_ui$P6M_ANIMATED, TRUE)
+P6M_ENABLED <- env_flag(cfg_ui$P6M_ENABLED, FALSE)
+P6M_ANIMATED_DEFAULT <- env_flag(cfg_ui$P6M_ANIMATED, FALSE)
 
 ui <- fluidPage(
   tags$head(
@@ -193,7 +193,8 @@ ui <- fluidPage(
       }
     "))
     ,
-    tags$script(HTML(sprintf("
+    tags$script(HTML({
+      js <- "
       (function() {
         var boot = null;
         var busy = null;
@@ -204,7 +205,7 @@ ui <- fluidPage(
         var bootTarget = 5;
         var bootCurrent = 0;
         var bootTick = null;
-        var p6mEnabled = %s;
+        var p6mEnabled = P6M_ENABLED_PLACEHOLDER;
 
         function hideBoot() {
           if (bootHidden) return;
@@ -277,7 +278,7 @@ ui <- fluidPage(
             setBootProgress(100);
           }, 4000);
           bootLoop();
-          setBootProgress(12);
+          setBootProgress(0);
         });
 
         document.addEventListener('shiny:connected', function() {
@@ -332,7 +333,10 @@ ui <- fluidPage(
           });
         }
       })();
-    ", ifelse(P6M_ENABLED, "true", "false")))),
+    "
+      js <- gsub("P6M_ENABLED_PLACEHOLDER", ifelse(P6M_ENABLED, "true", "false"), js, fixed = TRUE)
+      js
+    })),
     if (!P6M_ENABLED) tags$style(HTML("
       body {
         background-image: url('circe-bg.png');
@@ -374,7 +378,7 @@ server <- function(input, output, session) {
   boot_progress <- function(pct) {
     session$sendCustomMessage("bootProgress", list(pct = pct))
   }
-  boot_progress(10)
+  boot_progress(0)
 
   format_load_status <- function(sheet_name, is_error = FALSE, message = NULL) {
     timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
