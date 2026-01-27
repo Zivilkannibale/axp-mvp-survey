@@ -1,5 +1,6 @@
-instrument_id,instrument_version,language,item_id,type,label,required,active,order,page,section,options,slider_min,slider_max,slider_value,slider_step,slider_pre,slider_post,slider_left_label,slider_right_label,slider_ticks,width,placeholder
-axp_core,0.1,en,q0,selectInput,"The drug I took was:",1,1,1,1,core,"Cannabis;Psilocybin;Alcohol;MDMA;Other",,,,,,,,,,,100%,"Choose a drug"
-axp_core,0.1,en,q1,radioButtons,"The dose I took was:",1,1,2,1,core,"Low dose;Medium dose;High dose",,,,,,,,,,,100%,
-axp_core,0.1,en,q2,sliderInput,"Energy level",1,1,3,1,core,,0,100,50,1,,,"NOT MORE THAN USUAL","A LOT MORE THAN USUAL",FALSE,100%,
-axp_core,0.1,en,q3,textInput,"Any comments?",0,1,4,1,core,,,,,,,,,,,100%,"Share any thoughts (optional)"
+"instrument_id","instrument_version","language","item_id","type","label","required","active","order","page","section","options","slider_min","slider_max","slider_value","slider_step","slider_pre","slider_post","slider_left_label","slider_right_label","slider_ticks","width","placeholder","tracer_duration_seconds","tracer_y_min","tracer_y_max","tracer_samples","tracer_height","tracer_min_points","tracer_instruction"
+"axp_core","0.1","en","q0","selectInput","The drug I took was:","1","1","1","1","core","Cannabis;Psilocybin;Alcohol;MDMA;Other","","","","","","","","","","","100%",,,,,,,
+"axp_core","0.1","en","q1","radioButtons","The dose I took was:","1","1","2","1","core","Low dose;Medium dose;High dose","","","","","","","","","","","100%",,,,,,,
+"axp_core","0.1","en","q2","sliderInput","Energy level","1","1","3","1","core","","0","100","50","1","","","NOT MORE THAN USUAL","A LOT MORE THAN USUAL","FALSE","100%","",,,,,,,
+"axp_core","0.1","en","q3","textInput","Any comments?","0","1","4","1","core","","","","","","","","","","","100%","Share any thoughts (optional)",,,,,,,
+"axp_core","0.1","en","q_tracer","experience_tracer","Temporal Experience Tracer","1","1","5","1","core","","","","","","","","","","","100%","","300","0","100","101","260","10","Draw how the intensity changed over time."

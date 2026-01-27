@@ -14,6 +14,7 @@ source(file.path(root_dir, "R/questionnaire_loader.R"))
 source(file.path(root_dir, "R/db.R"))
 source(file.path(root_dir, "R/scoring.R"))
 source(file.path(root_dir, "R/plots.R"))
+source(file.path(root_dir, "R/experience_tracer.R"))
 source(file.path(root_dir, "R/quetzio/vendor_ui.R"))
 
 suppressPackageStartupMessages({
@@ -71,6 +72,8 @@ ui <- fluidPage(
     if (!P6M_ENABLED) tags$link(rel = "preload", href = "circe-bg.png", as = "image"),
     if (P6M_ENABLED) tags$link(rel = "preload", href = "p6m-bg.js", as = "script"),
     if (P6M_ENABLED) tags$script(src = "p6m-bg.js", defer = "defer"),
+    tags$script(src = "signature_pad.js", defer = "defer"),
+    tags$script(src = "experience_tracer.js", defer = "defer"),
     tags$style(HTML("
       :root {
         --accent: #6b3df0;
@@ -190,6 +193,43 @@ ui <- fluidPage(
         font-size: 12px;
         text-transform: uppercase;
         color: #a7b1e9;
+      }
+      .experience-tracer {
+        display: grid;
+        gap: 10px;
+      }
+      .experience-tracer-label {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .experience-tracer-instruction {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .experience-tracer-canvas-wrap {
+        position: relative;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fbfbff;
+        overflow: hidden;
+      }
+      .experience-tracer-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        background-image:
+          linear-gradient(transparent 75%, rgba(120, 130, 160, 0.18) 75%),
+          linear-gradient(90deg, transparent 75%, rgba(120, 130, 160, 0.18) 75%);
+        background-size: 25% 25%;
+      }
+      .experience-tracer-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .experience-tracer-status {
+        color: var(--muted);
+        font-size: 12px;
       }
     "))
     ,
@@ -486,6 +526,10 @@ server <- function(input, output, session) {
       navigation_error("")
       current_step(4)
       show_transition_busy()
+    } else if (step == 4) {
+      navigation_error("")
+      current_step(5)
+      show_transition_busy()
     }
   })
 
@@ -541,13 +585,28 @@ server <- function(input, output, session) {
           class = "app-card",
           h3("Questions"),
           uiOutput("questionnaire_ui"),
-          div(class = "error-text", textOutput("validation_error")),
-          actionButton("submit", "Submit")
+          div(class = "error-text", textOutput("validation_error"))
         ),
         div(
           class = "nav-actions",
           actionButton("prev_step", "Back"),
           actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 4) {
+      return(tagList(
+        div(
+          class = "app-card",
+          h3("Experience Tracer"),
+          uiOutput("tracer_ui"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("submit", "Submit")
         )
       ))
     }
@@ -567,21 +626,35 @@ server <- function(input, output, session) {
     )
   })
 
-  output$navigation_error <- renderText(navigation_error())
+output$navigation_error <- renderText(navigation_error())
 
-  questionnaire_ui_cached <- reactiveVal(NULL)
-  observeEvent(questionnaire_df(), {
-    questionnaire_ui_cached(questionnaire_ui_vendor(questionnaire_df()))
-  }, ignoreInit = FALSE)
+questionnaire_ui_cached <- reactiveVal(NULL)
+tracer_ui_cached <- reactiveVal(NULL)
+observeEvent(questionnaire_df(), {
+  df <- questionnaire_df()
+  questionnaire_ui_cached(questionnaire_ui_vendor(df[df$type != "experience_tracer", ]))
+  tracer_ui_cached(questionnaire_ui_vendor(df[df$type == "experience_tracer", ]))
+}, ignoreInit = FALSE)
 
-  output$questionnaire_ui <- renderUI({
-    cached <- questionnaire_ui_cached()
-    if (is.null(cached)) {
-      div(class = "muted", "Loading questions...")
-    } else {
-      cached
-    }
-  })
+output$questionnaire_ui <- renderUI({
+  cached <- questionnaire_ui_cached()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$tracer_ui <- renderUI({
+  cached <- tracer_ui_cached()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading experience tracer...")
+  } else if (length(cached) == 0) {
+    div(class = "muted", "No experience tracer items configured.")
+  } else {
+    cached
+  }
+})
 
   validation_error <- reactiveVal("")
   submission_status <- reactiveVal("")
@@ -670,6 +743,15 @@ server <- function(input, output, session) {
       if (row$type == "sliderInput") {
         touched <- input[[paste0(id, "__touched")]]
         if (is.null(touched) || touched != 1) missing <- c(missing, id)
+      } else if (row$type == "experience_tracer") {
+        payload <- value
+        min_points <- if ("tracer_min_points" %in% names(row) && !is.na(row$tracer_min_points)) {
+          as.numeric(row$tracer_min_points)
+        } else {
+          10
+        }
+        pts <- tracer_points_df(payload)
+        if (nrow(pts) < min_points) missing <- c(missing, id)
       } else if (is.null(value) || value == "") {
         missing <- c(missing, id)
       }
@@ -684,6 +766,30 @@ server <- function(input, output, session) {
       row <- items[i, ]
       id <- row$item_id
       value <- input[[id]]
+      if (row$type == "experience_tracer") {
+        payload <- value
+        samples <- if ("tracer_samples" %in% names(row) && !is.na(row$tracer_samples)) {
+          as.numeric(row$tracer_samples)
+        } else {
+          101
+        }
+        y_min <- if ("tracer_y_min" %in% names(row) && !is.na(row$tracer_y_min)) {
+          as.numeric(row$tracer_y_min)
+        } else {
+          0
+        }
+        y_max <- if ("tracer_y_max" %in% names(row) && !is.na(row$tracer_y_max)) {
+          as.numeric(row$tracer_y_max)
+        } else {
+          100
+        }
+        resampled <- tracer_resample(payload, n = samples, y_min = y_min, y_max = y_max)
+        value <- jsonlite::toJSON(
+          list(raw = payload, resampled = resampled),
+          auto_unbox = TRUE,
+          null = "null"
+        )
+      }
       list(
         item_id = id,
         type = row$type,
@@ -742,6 +848,8 @@ server <- function(input, output, session) {
     }
 
     latest_scores(scores_df)
+    current_step(5)
+    show_transition_busy()
   })
 }
 

@@ -54,6 +54,15 @@ quetzio_df_to_items <- function(df) {
     item$slider_right_label <- quetzio_null_def(get_col("slider_right_label"), NA)
     item$slider_ticks <- quetzio_null_def(get_col("slider_ticks"), NA)
 
+    # experience tracer fields
+    item$tracer_duration_seconds <- quetzio_null_def(get_col("tracer_duration_seconds"), NA)
+    item$tracer_y_min <- quetzio_null_def(get_col("tracer_y_min"), 0)
+    item$tracer_y_max <- quetzio_null_def(get_col("tracer_y_max"), 100)
+    item$tracer_samples <- quetzio_null_def(get_col("tracer_samples"), 101)
+    item$tracer_height <- quetzio_null_def(get_col("tracer_height"), 240)
+    item$tracer_min_points <- quetzio_null_def(get_col("tracer_min_points"), 10)
+    item$tracer_instruction <- quetzio_null_def(get_col("tracer_instruction"), "")
+
     items[[input_id]] <- item
   }
 
@@ -149,6 +158,20 @@ quetzio_generate_ui <- function(items) {
         } else {
           selectizeInput(input_id, label, choices = choices, width = item$width)
         }
+      },
+      experience_tracer = {
+        experience_tracer_input(
+          input_id,
+          label,
+          instruction = item$tracer_instruction,
+          width = item$width,
+          height = item$tracer_height,
+          duration_seconds = item$tracer_duration_seconds,
+          y_min = item$tracer_y_min,
+          y_max = item$tracer_y_max,
+          samples = item$tracer_samples,
+          min_points = item$tracer_min_points
+        )
       },
       textInput(input_id, paste0(as.character(item$label), " (unsupported type: ", item$type, ")"))
     )
