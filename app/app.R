@@ -68,6 +68,7 @@ ui <- fluidPage(
       href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=Press+Start+2P&display=swap"
     ),
     tags$link(rel = "preload", href = "circe-logo.png", as = "image"),
+    if (!P6M_ENABLED) tags$link(rel = "preload", href = "circe-bg.png", as = "image"),
     if (P6M_ENABLED) tags$link(rel = "preload", href = "p6m-bg.js", as = "script"),
     if (P6M_ENABLED) tags$script(src = "p6m-bg.js", defer = "defer"),
     tags$style(HTML("
@@ -134,11 +135,11 @@ ui <- fluidPage(
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(11, 12, 16, 0.92);
+        background: #000000;
         color: #9bff6a;
         font-family: 'Press Start 2P', 'Courier New', monospace;
         letter-spacing: 0.05em;
-        transition: opacity 400ms ease, visibility 400ms ease;
+        transition: opacity 220ms ease, visibility 220ms ease;
       }
       .boot-overlay.hidden, .busy-overlay.hidden {
         opacity: 0;
@@ -192,7 +193,7 @@ ui <- fluidPage(
       }
     "))
     ,
-    tags$script(HTML("
+    tags$script(HTML(sprintf("
       (function() {
         var boot = null;
         var busy = null;
@@ -203,6 +204,7 @@ ui <- fluidPage(
         var bootTarget = 5;
         var bootCurrent = 0;
         var bootTick = null;
+        var p6mEnabled = %s;
 
         function hideBoot() {
           if (bootHidden) return;
@@ -229,7 +231,6 @@ ui <- fluidPage(
           var pct = Math.max(0, Math.min(100, bootCurrent));
           bootBar.style.width = pct + '%';
           bootPct.textContent = Math.round(pct) + '%';
-          boot.style.opacity = String(Math.max(0, Math.min(1, 1 - (pct / 100))));
           if (pct >= 100) {
             hideBoot();
             return;
@@ -254,7 +255,12 @@ ui <- fluidPage(
           bootBar = document.getElementById('boot-progress-bar');
           bootPct = document.getElementById('boot-progress-pct');
 
-          var assets = ['circe-logo.png', 'p6m-bg.js'];
+          var assets = ['circe-logo.png'];
+          if (p6mEnabled) {
+            assets.push('p6m-bg.js');
+          } else {
+            assets.push('circe-bg.png');
+          }
           assets.forEach(function(src) {
             var link = document.createElement('link');
             link.rel = 'preload';
@@ -326,6 +332,15 @@ ui <- fluidPage(
           });
         }
       })();
+    ", ifelse(P6M_ENABLED, "true", "false")))),
+    if (!P6M_ENABLED) tags$style(HTML("
+      body {
+        background-image: url('circe-bg.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-attachment: fixed;
+      }
     "))
   ),
   div(
