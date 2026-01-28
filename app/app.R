@@ -66,7 +66,7 @@ ui <- fluidPage(
     tags$link(rel = "preconnect", href = "https://fonts.gstatic.com", crossorigin = "anonymous"),
     tags$link(
       rel = "stylesheet",
-      href = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=Press+Start+2P&display=swap"
+      href = "https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Press+Start+2P&display=swap"
     ),
     tags$link(rel = "preload", href = "circe-logo.png", as = "image"),
     if (!P6M_ENABLED) tags$link(rel = "preload", href = "circe-bg.png", as = "image"),
@@ -84,8 +84,8 @@ ui <- fluidPage(
         --bg: #f9f9fb;
         --card: #ffffff;
         --radius: 20px;
-        --font-body: 'Manrope', 'Segoe UI', sans-serif;
-        --font-head: 'Space Grotesk', 'Segoe UI', sans-serif;
+        --font-body: 'Nunito', 'Segoe UI', sans-serif;
+        --font-head: 'Nunito', 'Segoe UI', sans-serif;
         --slider-accent: #6b3df0;
         --slider-track: #e6e3f4;
       }
@@ -101,6 +101,26 @@ ui <- fluidPage(
       .app-logo { display: block; width: 120px; height: auto; margin: 0 0 12px; }
       .app-eyebrow { text-transform: uppercase; font-size: 16px; letter-spacing: 0.18em; color: #000000; font-weight: 700; margin: -4px 0 6px; }
       .app-title { font-size: 28px; margin: 8px 0 12px; }
+      .app-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .app-links {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 12px;
+      }
+      .app-link {
+        font-size: 19px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #6b3df0;
+        text-decoration: none;
+      }
       .app-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 18px; box-shadow: 0 8px 24px rgba(25, 22, 70, 0.06); }
       .app-card h3 { margin-top: 0; font-size: 18px; }
       .muted { color: var(--muted); font-size: 12px; margin-top: 6px; }
@@ -109,13 +129,14 @@ ui <- fluidPage(
       .quetzio-question { padding: 14px 0 18px; border-bottom: 1px solid var(--border); }
       .quetzio-question:last-child { border-bottom: none; }
       .quetzio-question label { font-size: 18px; font-weight: 500; color: var(--text); }
+      label[for='q0'], label[for='q1'] { display: none; }
       .form-control, .selectize-input { border-radius: 999px; border: 1px solid var(--border); box-shadow: none; }
       textarea.form-control { border-radius: 16px; }
       .radio { margin: 10px 0; }
       .radio input { display: none; }
       .radio label { display: block; padding: 12px 16px; border: 1px solid var(--border); border-radius: 999px; color: var(--text); background: #fff; font-weight: 500; }
       .radio label:has(input:checked) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
-      #submit { border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); background: #fff; padding: 10px 22px; font-weight: 600; }
+      #submit { border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); background: #fff; padding: 10px 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
       #submit:hover { background: var(--accent-soft); }
       .slider-labels { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
       .shiny-input-container { width: 100%; max-width: 100%; }
@@ -130,7 +151,150 @@ ui <- fluidPage(
       .irs--shiny .irs-min, .irs--shiny .irs-max { display: none; }
       .irs--shiny .irs-grid, .irs--shiny .irs-grid-text { display: none; }
       .nav-actions { display: flex; gap: 12px; margin-top: 18px; }
-      .nav-actions .btn { border-radius: 999px; padding: 8px 20px; font-weight: 600; }
+      .nav-actions .btn {
+        border-radius: 999px;
+        padding: 8px 20px;
+        font-weight: 700;
+        border: 1px solid rgba(107, 61, 240, 0.6);
+        color: #6b3df0;
+        background: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .nav-actions .btn:hover { background: var(--accent-soft); }
+      .intro-panel {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 28px;
+        min-height: 62vh;
+        padding: 8px 6px 6px;
+      }
+      .intro-center {
+        display: grid;
+        gap: 14px;
+        text-align: left;
+        align-content: start;
+      }
+      .intro-title {
+        font-family: var(--font-head);
+        font-size: 34px;
+        letter-spacing: 0.28em;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: rgba(40, 45, 60, 0.65);
+      }
+      .intro-body {
+        max-width: 520px;
+        margin: 0;
+        color: var(--text);
+        font-size: 13px;
+      }
+      .intro-body ul {
+        text-align: left;
+        margin: 12px 0 0;
+        padding-left: 18px;
+      }
+      .consent-body {
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.6;
+        display: grid;
+        gap: 14px;
+      }
+      .consent-checkbox {
+        margin-top: 8px;
+      }
+      .consent-checkbox label {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .prep-body {
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.6;
+        display: grid;
+        gap: 12px;
+      }
+      .prep-eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: rgba(40, 45, 60, 0.55);
+      }
+      .intro-start {
+        border-radius: 999px;
+        border: 1px solid rgba(107, 61, 240, 0.6);
+        color: #6b3df0;
+        background: #fff;
+        padding: 10px 26px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .intro-results {
+        border-radius: 999px;
+        border: 1px solid rgba(107, 61, 240, 0.35);
+        background: #fff;
+        color: #6b3df0;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+        font-weight: 700;
+        position: relative;
+        cursor: default;
+        padding: 8px 18px;
+      }
+      .intro-results:hover::after {
+        content: 'When implemented, this will lead you to a page where you can access all of your previous submissions.';
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, -10px);
+        bottom: 100%;
+        width: 240px;
+        background: rgba(24, 26, 34, 0.9);
+        color: #fff;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        letter-spacing: normal;
+        text-transform: none;
+        z-index: 3;
+        text-align: center;
+      }
+      .submit-disabled {
+        border-radius: 999px;
+        border: 1px solid rgba(107, 61, 240, 0.35);
+        background: #fff;
+        color: #6b3df0;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+        padding: 8px 20px;
+        position: relative;
+        cursor: not-allowed;
+      }
+      .submit-disabled:hover::after {
+        content: 'Will be implemented to store data on the Strato server.';
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, -10px);
+        bottom: 100%;
+        width: 220px;
+        background: rgba(24, 26, 34, 0.9);
+        color: #fff;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        letter-spacing: normal;
+        text-transform: none;
+        z-index: 3;
+        text-align: center;
+      }
+      @media (max-width: 520px) {
+        .intro-title { font-size: 26px; letter-spacing: 0.2em; }
+        .intro-body { font-size: 12px; }
+      }
       .boot-overlay, .busy-overlay {
         position: fixed;
         inset: 0;
@@ -481,14 +645,34 @@ ui <- fluidPage(
     div(class = "busy-pill", "Loading")
   ),
   if (P6M_ENABLED) div(id = "p6m-layer"),
-  div(
-    class = "app-shell",
-    tags$img(src = "circe-logo.png", alt = "Circe logo", class = "app-logo"),
-    div(class = "app-eyebrow", "AXP survey"),
-    div(class = "app-title", "Participant Questionnaire"),
-    uiOutput("page_ui")
+    div(
+      class = "app-shell",
+      div(
+        class = "app-top",
+        tags$img(src = "circe-logo.png", alt = "Circe logo", class = "app-logo"),
+        div(
+          class = "app-links",
+          tags$a(
+            href = "https://osf.io/c3zq5/overview",
+            target = "_blank",
+            rel = "noopener",
+            class = "app-link",
+            "About AXP"
+          ),
+          tags$a(
+            href = "https://circe-science.com/",
+            target = "_blank",
+            rel = "noopener",
+            class = "app-link",
+            "About Circe"
+          )
+        )
+      ),
+      div(class = "app-eyebrow", "AXP survey"),
+      div(class = "app-title", "Participant Questionnaire"),
+      uiOutput("page_ui")
+    )
   )
-)
 
 server <- function(input, output, session) {
   cfg <- get_config(required = FALSE)
@@ -607,6 +791,26 @@ server <- function(input, output, session) {
       navigation_error("")
       current_step(5)
       show_transition_busy()
+    } else if (step == 5) {
+      navigation_error("")
+      current_step(6)
+      show_transition_busy()
+    } else if (step == 6) {
+      navigation_error("")
+      current_step(7)
+      show_transition_busy()
+    } else if (step == 7) {
+      navigation_error("")
+      current_step(8)
+      show_transition_busy()
+    } else if (step == 8) {
+      navigation_error("")
+      current_step(9)
+      show_transition_busy()
+    } else if (step == 9) {
+      navigation_error("")
+      current_step(10)
+      show_transition_busy()
     }
   })
 
@@ -626,16 +830,40 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Introduction"),
-          p("Use this page to reload the questionnaire and select a specific sheet tab."),
-          if (P6M_ENABLED) checkboxInput("animated_bg", "Animated p6m waves", value = P6M_ANIMATED_DEFAULT),
-          textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
-          actionButton("reload_questionnaire", "Reload questionnaire"),
-          div(class = "muted", textOutput("load_status"))
+          div(
+            class = "intro-panel",
+            div(
+              class = "intro-center",
+              div(class = "intro-title", "Intro"),
+              div(
+                class = "intro-body",
+                p(
+                  "During development you can feed the questionnaire from either a local CSV file or a Google Sheet (",
+                  tags$a(
+                    href = "https://docs.google.com/spreadsheets/d/1o2eCjyVRHiIYzVaQ8Z4wAA0XmOwGKWfTj0d36wfw_jc/edit?usp=sharing",
+                    target = "_blank",
+                    rel = "noopener",
+                    "open sheet"
+                  ),
+                  ")."
+                ),
+                tags$ul(
+                  tags$li("Local CSV: use docs/sample_questionnaire.csv for quick offline edits."),
+                  tags$li("Google Sheets (service account): each tab represents a version (e.g., v0.2, v0.3) so collaborators can iterate without touching code.")
+                ),
+                p("To switch versions, set the default tab in .Renviron or type a tab name below and press Reload.")
+              )
+            ),
+            if (P6M_ENABLED) checkboxInput("animated_bg", "Animated p6m waves", value = P6M_ANIMATED_DEFAULT),
+            textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
+            actionButton("reload_questionnaire", "Reload questionnaire"),
+            div(class = "muted", textOutput("load_status"))
+          )
         ),
         div(
           class = "nav-actions",
-          actionButton("next_step", "Continue")
+          actionButton("next_step", "Start", class = "intro-start"),
+          tags$button(type = "button", class = "intro-results", "See all my results")
         )
       ))
     }
@@ -644,8 +872,18 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Consent"),
-          checkboxInput("consent", "I agree to participate.", value = FALSE),
+          h3("Before we start"),
+          div(
+            class = "consent-body",
+            p("The Altered eXperience Project is an effort to organize and systematize our knowledge about human subjective experience during different states of consciousness."),
+            p("Some of these states are very different from our ordinary experience and different people experience these states in their own particular ways. That is why your participation is very important."),
+            p("In this experiment we’re focusing on drug induced altered states with cannabis, psilocybin, alcohol and MDMA. If you agree to participate, you will be asked questions about one of your own altered experiences. It will take 5–10 minutes."),
+            p("Every experience you share will be fully anonymous and all data openly available for researchers all over the world. Once you finish, we will show you how your experience compares to other people’s experiences.")
+          ),
+          div(
+            class = "consent-checkbox",
+            checkboxInput("consent", "I agree to take part.", value = FALSE, width = "100%")
+          ),
           div(class = "error-text", textOutput("navigation_error"))
         ),
         div(
@@ -660,8 +898,30 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Questions"),
-          uiOutput("questionnaire_ui"),
+          div(class = "prep-eyebrow", "Each experience is unique."),
+          h3("Visualize your experience"),
+          div(
+            class = "prep-body",
+            p("Think of a time when you took either cannabis, psilocybin, alcohol or MDMA and visualize your experience."),
+            p("Focus on one single, altered state experience. Visualize it. Think of where you were, the time it was, the sounds and smells around you."),
+            p("Try recapturing the feel of your whole body and mind entering the experience. Once you have focused on that single experience, we can move on.")
+          )
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 4) {
+      return(tagList(
+        div(
+          class = "app-card",
+          div(class = "prep-eyebrow", "Your experience"),
+          h3("The drug I took was:"),
+          uiOutput("questionnaire_ui_page1"),
           div(class = "error-text", textOutput("validation_error"))
         ),
         div(
@@ -672,24 +932,110 @@ server <- function(input, output, session) {
       ))
     }
 
-      if (step == 4) {
-        return(tagList(
+    if (step == 5) {
+      return(tagList(
+        div(
+          class = "app-card",
           div(
-            class = "app-card",
-            h3("Experience Tracer"),
-            uiOutput("tracer_ui"),
-            div(class = "error-text", textOutput("validation_error"))
+            class = "prep-eyebrow",
+            toupper(ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0))
           ),
-          div(
-            class = "nav-actions",
-            actionButton("prev_step", "Back"),
-            actionButton("next_step", "Continue"),
-            actionButton("submit", "Submit")
-          )
-        ))
-      }
+          h3("The dose I took was:"),
+          uiOutput("questionnaire_ui_page2"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
 
-    tagList(
+    if (step == 6) {
+      return(tagList(
+        div(
+          class = "app-card",
+          div(
+            class = "prep-eyebrow",
+            paste(
+              toupper(ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0)),
+              toupper(ifelse(is.null(input$q1) || input$q1 == "", "", input$q1)),
+              sep = " · "
+            )
+          ),
+          h3("Describe the context in which you had this experience."),
+          uiOutput("questionnaire_ui_page3"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 7) {
+      return(tagList(
+        div(
+          class = "app-card",
+          div(
+            class = "prep-eyebrow",
+            paste(
+              toupper(ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0)),
+              toupper(ifelse(is.null(input$q1) || input$q1 == "", "", input$q1)),
+              sep = " · "
+            )
+          ),
+          h3("Perfect!"),
+          div(
+            class = "prep-body",
+            p("Next, we will ask you a series of questions for you to answer what you experienced.")
+          )
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 8) {
+      return(tagList(
+        div(
+          class = "app-card",
+          h3("Questions"),
+          uiOutput("questionnaire_ui_rest"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 9) {
+      return(tagList(
+        div(
+          class = "app-card",
+          h3("Experience Tracer"),
+          uiOutput("tracer_ui"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue"),
+          tags$button(type = "button", class = "submit-disabled", "Submit")
+        )
+      ))
+    }
+
+    if (step == 10) tagList(
       div(
         class = "app-card",
         h3("Feedback"),
@@ -706,16 +1052,54 @@ server <- function(input, output, session) {
 
 output$navigation_error <- renderText(navigation_error())
 
-questionnaire_ui_cached <- reactiveVal(NULL)
+questionnaire_ui_page1 <- reactiveVal(NULL)
+questionnaire_ui_page2 <- reactiveVal(NULL)
+questionnaire_ui_page3 <- reactiveVal(NULL)
+questionnaire_ui_rest <- reactiveVal(NULL)
 tracer_ui_cached <- reactiveVal(NULL)
 observeEvent(questionnaire_df(), {
   df <- questionnaire_df()
-  questionnaire_ui_cached(questionnaire_ui_vendor(df[df$type != "experience_tracer", ]))
+  df_questions <- df[df$type != "experience_tracer", ]
+  page1_df <- df_questions[df_questions$item_id == "q0", ]
+  page2_df <- df_questions[df_questions$item_id == "q1", ]
+  page3_df <- df_questions[df_questions$item_id == "q_context", ]
+  rest_df <- df_questions[!df_questions$item_id %in% c("q0", "q1", "q_context"), ]
+  questionnaire_ui_page1(questionnaire_ui_vendor(page1_df))
+  questionnaire_ui_page2(questionnaire_ui_vendor(page2_df))
+  questionnaire_ui_page3(questionnaire_ui_vendor(page3_df))
+  questionnaire_ui_rest(questionnaire_ui_vendor(rest_df))
   tracer_ui_cached(questionnaire_ui_vendor(df[df$type == "experience_tracer", ]))
 }, ignoreInit = FALSE)
 
-output$questionnaire_ui <- renderUI({
-  cached <- questionnaire_ui_cached()
+output$questionnaire_ui_page1 <- renderUI({
+  cached <- questionnaire_ui_page1()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$questionnaire_ui_page2 <- renderUI({
+  cached <- questionnaire_ui_page2()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$questionnaire_ui_page3 <- renderUI({
+  cached <- questionnaire_ui_page3()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$questionnaire_ui_rest <- renderUI({
+  cached <- questionnaire_ui_rest()
   if (is.null(cached)) {
     div(class = "muted", "Loading questions...")
   } else {
@@ -799,7 +1183,10 @@ output$tracer_ui <- renderUI({
   }, res = 120, antialias = "default")
 
   outputOptions(output, "radar_plot", suspendWhenHidden = TRUE)
-  outputOptions(output, "questionnaire_ui", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_page1", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_page2", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_page3", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_rest", suspendWhenHidden = FALSE)
 
   observeEvent(input$submit, {
     validation_error("")
