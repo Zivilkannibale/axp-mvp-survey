@@ -131,6 +131,23 @@ ui <- fluidPage(
       .quetzio-question label { font-size: 18px; font-weight: 500; color: var(--text); }
       label[for='q0'], label[for='q1'] { display: none; }
       .form-control, .selectize-input { border-radius: 999px; border: 1px solid var(--border); box-shadow: none; }
+      .form-control:focus, .selectize-input:focus, .selectize-input.focus, .selectize-control .selectize-input.focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(107, 61, 240, 0.18);
+        outline: none;
+      }
+      .selectize-control.single .selectize-input,
+      .selectize-control.single .selectize-input.input-active {
+        border-color: var(--border);
+      }
+      .selectize-control.single .selectize-input.focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(107, 61, 240, 0.18);
+      }
+      .selectize-control.single .selectize-input input:focus {
+        outline: none;
+        box-shadow: none;
+      }
       textarea.form-control { border-radius: 16px; }
       .radio { margin: 10px 0; }
       .radio input { display: none; }
