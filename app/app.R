@@ -129,7 +129,6 @@ ui <- fluidPage(
       .quetzio-question { padding: 14px 0 18px; border-bottom: 1px solid var(--border); }
       .quetzio-question:last-child { border-bottom: none; }
       .quetzio-question label { font-size: 18px; font-weight: 500; color: var(--text); }
-      label[for='q0'], label[for='q1'] { display: none; }
       .form-control, .selectize-input { border-radius: 999px; border: 1px solid var(--border); box-shadow: none; }
       .form-control:focus, .selectize-input:focus, .selectize-input.focus, .selectize-control .selectize-input.focus {
         border-color: var(--accent);
@@ -179,6 +178,27 @@ ui <- fluidPage(
         letter-spacing: 0.08em;
       }
       .nav-actions .btn:hover { background: var(--accent-soft); }
+      .progress-steps {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        gap: 8px;
+        margin: 4px 0 14px;
+      }
+      .progress-step {
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(107, 61, 240, 0.18);
+        position: relative;
+        overflow: hidden;
+      }
+      .progress-step.is-active::after,
+      .progress-step.is-complete::after {
+        content: \"\";
+        position: absolute;
+        inset: 0;
+        background: var(--accent);
+      }
       .intro-panel {
         display: grid;
         grid-template-rows: auto 1fr auto;
@@ -223,7 +243,17 @@ ui <- fluidPage(
       }
       .consent-checkbox label {
         color: var(--text);
-        font-weight: 500;
+        font-weight: 600;
+        font-size: 28px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+      }
+      .consent-checkbox input[type='checkbox'] {
+        width: 26px;
+        height: 26px;
+        accent-color: var(--accent);
       }
       .prep-body {
         color: var(--text);
@@ -762,6 +792,8 @@ server <- function(input, output, session) {
   load_status <- reactiveVal(initial_status)
   current_step <- reactiveVal(1)
   navigation_error <- reactiveVal("")
+  progress_start_step <- 4
+  progress_end_step <- 12
 
   observeEvent(input$reload_questionnaire, {
     sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
@@ -769,6 +801,25 @@ server <- function(input, output, session) {
   })
 
   output$load_status <- renderText(load_status())
+  output$progress_steps <- renderUI({
+    step <- current_step()
+    if (step < progress_start_step || step > progress_end_step) {
+      return(NULL)
+    }
+    total <- progress_end_step - progress_start_step + 1
+    index <- step - progress_start_step + 1
+    steps_ui <- lapply(seq_len(total), function(i) {
+      cls <- if (i < index) {
+        "progress-step is-complete"
+      } else if (i == index) {
+        "progress-step is-active"
+      } else {
+        "progress-step"
+      }
+      div(class = cls)
+    })
+    div(class = "progress-steps", steps_ui)
+  })
 
   observeEvent(input$animated_bg, {
     session$sendCustomMessage("p6mToggle", list(enabled = isTRUE(input$animated_bg)))
@@ -828,6 +879,22 @@ server <- function(input, output, session) {
       navigation_error("")
       current_step(10)
       show_transition_busy()
+    } else if (step == 10) {
+      navigation_error("")
+      current_step(11)
+      show_transition_busy()
+    } else if (step == 11) {
+      navigation_error("")
+      current_step(12)
+      show_transition_busy()
+    } else if (step == 12) {
+      navigation_error("")
+      current_step(13)
+      show_transition_busy()
+    } else if (step == 13) {
+      navigation_error("")
+      current_step(14)
+      show_transition_busy()
     }
   })
 
@@ -839,6 +906,18 @@ server <- function(input, output, session) {
       show_transition_busy()
     }
   })
+
+  experience_header_value <- function(include_dose = TRUE) {
+    drug <- ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0)
+    dose <- ifelse(is.null(input$q1) || input$q1 == "", "", input$q1)
+    parts <- c(drug, if (include_dose && dose != "") dose else NULL)
+    toupper(paste(parts, collapse = " - "))
+  }
+
+  output$experience_header_step1 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = FALSE)) })
+  output$experience_header_step2 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = TRUE)) })
+  output$experience_header_step3 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = TRUE)) })
+  output$experience_header_step4 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = TRUE)) })
 
   output$page_ui <- renderUI({
     step <- current_step()
@@ -931,13 +1010,12 @@ server <- function(input, output, session) {
         )
       ))
     }
-
     if (step == 4) {
       return(tagList(
+        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow", "Your experience"),
-          h3("The drug I took was:"),
+          uiOutput("experience_header_step1"),
           uiOutput("questionnaire_ui_page1"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -951,13 +1029,10 @@ server <- function(input, output, session) {
 
     if (step == 5) {
       return(tagList(
+        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(
-            class = "prep-eyebrow",
-            toupper(ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0))
-          ),
-          h3("The dose I took was:"),
+          uiOutput("experience_header_step2"),
           uiOutput("questionnaire_ui_page2"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -971,16 +1046,10 @@ server <- function(input, output, session) {
 
     if (step == 6) {
       return(tagList(
+        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(
-            class = "prep-eyebrow",
-            paste(
-              toupper(ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0)),
-              toupper(ifelse(is.null(input$q1) || input$q1 == "", "", input$q1)),
-              sep = " · "
-            )
-          ),
+          uiOutput("experience_header_step3"),
           h3("Describe the context in which you had this experience."),
           uiOutput("questionnaire_ui_page3"),
           div(class = "error-text", textOutput("validation_error"))
@@ -995,16 +1064,10 @@ server <- function(input, output, session) {
 
     if (step == 7) {
       return(tagList(
+        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(
-            class = "prep-eyebrow",
-            paste(
-              toupper(ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0)),
-              toupper(ifelse(is.null(input$q1) || input$q1 == "", "", input$q1)),
-              sep = " · "
-            )
-          ),
+          uiOutput("experience_header_step4"),
           h3("Perfect!"),
           div(
             class = "prep-body",
@@ -1021,10 +1084,11 @@ server <- function(input, output, session) {
 
     if (step == 8) {
       return(tagList(
+        uiOutput("progress_steps"),
         div(
           class = "app-card",
           h3("Questions"),
-          uiOutput("questionnaire_ui_rest"),
+          uiOutput("questionnaire_ui_slider1"),
           div(class = "error-text", textOutput("validation_error"))
         ),
         div(
@@ -1036,6 +1100,74 @@ server <- function(input, output, session) {
     }
 
     if (step == 9) {
+      return(tagList(
+        uiOutput("progress_steps"),
+        div(
+          class = "app-card",
+          h3("Questions"),
+          uiOutput("questionnaire_ui_slider2"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 10) {
+      return(tagList(
+        uiOutput("progress_steps"),
+        div(
+          class = "app-card",
+          h3("Questions"),
+          uiOutput("questionnaire_ui_slider3"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 11) {
+      return(tagList(
+        uiOutput("progress_steps"),
+        div(
+          class = "app-card",
+          h3("Questions"),
+          uiOutput("questionnaire_ui_slider4"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 12) {
+      return(tagList(
+        uiOutput("progress_steps"),
+        div(
+          class = "app-card",
+          h3("Freely describe your experience in your own words"),
+          uiOutput("questionnaire_ui_free"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("next_step", "Continue")
+        )
+      ))
+    }
+
+    if (step == 13) {
       return(tagList(
         div(
           class = "app-card",
@@ -1052,7 +1184,7 @@ server <- function(input, output, session) {
       ))
     }
 
-    if (step == 10) tagList(
+    if (step == 14) tagList(
       div(
         class = "app-card",
         h3("Feedback"),
@@ -1072,7 +1204,11 @@ output$navigation_error <- renderText(navigation_error())
 questionnaire_ui_page1 <- reactiveVal(NULL)
 questionnaire_ui_page2 <- reactiveVal(NULL)
 questionnaire_ui_page3 <- reactiveVal(NULL)
-questionnaire_ui_rest <- reactiveVal(NULL)
+questionnaire_ui_slider1 <- reactiveVal(NULL)
+questionnaire_ui_slider2 <- reactiveVal(NULL)
+questionnaire_ui_slider3 <- reactiveVal(NULL)
+questionnaire_ui_slider4 <- reactiveVal(NULL)
+questionnaire_ui_free <- reactiveVal(NULL)
 tracer_ui_cached <- reactiveVal(NULL)
 observeEvent(questionnaire_df(), {
   df <- questionnaire_df()
@@ -1080,11 +1216,37 @@ observeEvent(questionnaire_df(), {
   page1_df <- df_questions[df_questions$item_id == "q0", ]
   page2_df <- df_questions[df_questions$item_id == "q1", ]
   page3_df <- df_questions[df_questions$item_id == "q_context", ]
-  rest_df <- df_questions[!df_questions$item_id %in% c("q0", "q1", "q_context"), ]
+  free_df <- df_questions[df_questions$item_id == "q_free", ]
+  slider_df <- df_questions[df_questions$type == "sliderInput", ]
+  slider_df <- slider_df[order(as.numeric(slider_df$order)), ]
+  slider_count <- nrow(slider_df)
+  slider_sizes <- if (slider_count == 0) {
+    rep(0, 4)
+  } else {
+    base <- floor(slider_count / 4)
+    extra <- slider_count %% 4
+    sizes <- rep(base, 4)
+    if (extra > 0) sizes[seq_len(extra)] <- sizes[seq_len(extra)] + 1
+    sizes
+  }
+  slider_groups <- vector("list", 4)
+  idx <- 1
+  for (i in seq_len(4)) {
+    if (slider_sizes[i] > 0) {
+      slider_groups[[i]] <- slider_df[idx:(idx + slider_sizes[i] - 1), ]
+    } else {
+      slider_groups[[i]] <- slider_df[0, ]
+    }
+    idx <- idx + slider_sizes[i]
+  }
   questionnaire_ui_page1(questionnaire_ui_vendor(page1_df))
   questionnaire_ui_page2(questionnaire_ui_vendor(page2_df))
   questionnaire_ui_page3(questionnaire_ui_vendor(page3_df))
-  questionnaire_ui_rest(questionnaire_ui_vendor(rest_df))
+  questionnaire_ui_slider1(questionnaire_ui_vendor(slider_groups[[1]]))
+  questionnaire_ui_slider2(questionnaire_ui_vendor(slider_groups[[2]]))
+  questionnaire_ui_slider3(questionnaire_ui_vendor(slider_groups[[3]]))
+  questionnaire_ui_slider4(questionnaire_ui_vendor(slider_groups[[4]]))
+  questionnaire_ui_free(questionnaire_ui_vendor(free_df))
   tracer_ui_cached(questionnaire_ui_vendor(df[df$type == "experience_tracer", ]))
 }, ignoreInit = FALSE)
 
@@ -1115,10 +1277,46 @@ output$questionnaire_ui_page3 <- renderUI({
   }
 })
 
-output$questionnaire_ui_rest <- renderUI({
-  cached <- questionnaire_ui_rest()
+output$questionnaire_ui_slider1 <- renderUI({
+  cached <- questionnaire_ui_slider1()
   if (is.null(cached)) {
     div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$questionnaire_ui_slider2 <- renderUI({
+  cached <- questionnaire_ui_slider2()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$questionnaire_ui_slider3 <- renderUI({
+  cached <- questionnaire_ui_slider3()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$questionnaire_ui_slider4 <- renderUI({
+  cached <- questionnaire_ui_slider4()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading questions...")
+  } else {
+    cached
+  }
+})
+
+output$questionnaire_ui_free <- renderUI({
+  cached <- questionnaire_ui_free()
+  if (is.null(cached)) {
+    div(class = "muted", "Loading question...")
   } else {
     cached
   }
@@ -1203,7 +1401,11 @@ output$tracer_ui <- renderUI({
   outputOptions(output, "questionnaire_ui_page1", suspendWhenHidden = FALSE)
   outputOptions(output, "questionnaire_ui_page2", suspendWhenHidden = FALSE)
   outputOptions(output, "questionnaire_ui_page3", suspendWhenHidden = FALSE)
-  outputOptions(output, "questionnaire_ui_rest", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_slider1", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_slider2", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_slider3", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_slider4", suspendWhenHidden = FALSE)
+  outputOptions(output, "questionnaire_ui_free", suspendWhenHidden = FALSE)
 
   observeEvent(input$submit, {
     validation_error("")
@@ -1330,9 +1532,14 @@ output$tracer_ui <- renderUI({
     }
 
     latest_scores(scores_df)
-    current_step(5)
+    current_step(14)
     show_transition_busy()
   })
 }
 
 shinyApp(ui, server)
+
+
+
+
+
