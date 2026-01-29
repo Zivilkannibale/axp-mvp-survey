@@ -717,7 +717,8 @@ ui <- fluidPage(
       ),
       div(class = "app-eyebrow", "AXP survey"),
       div(class = "app-title", "Participant Questionnaire"),
-      uiOutput("page_ui")
+      uiOutput("page_ui"),
+      uiOutput("feedback_panel")
     )
   )
 
@@ -1184,22 +1185,12 @@ server <- function(input, output, session) {
       ))
     }
 
-    if (step == 14) tagList(
-      div(
-        class = "app-card",
-        h3("Feedback"),
-        div(id = "feedback_loading", class = "muted", "Preparing feedback..."),
-        plotOutput("radar_plot", height = "540px", width = "100%"),
-        verbatimTextOutput("submission_status")
-      ),
-      div(
-        class = "nav-actions",
-        actionButton("prev_step", "Back")
-      )
-    )
+    if (step == 14) {
+      return(NULL)
+    }
   })
 
-output$navigation_error <- renderText(navigation_error())
+  output$navigation_error <- renderText(navigation_error())
 
 questionnaire_ui_page1 <- reactiveVal(NULL)
 questionnaire_ui_page2 <- reactiveVal(NULL)
@@ -1336,40 +1327,91 @@ output$tracer_ui <- renderUI({
   validation_error <- reactiveVal("")
   submission_status <- reactiveVal("")
   latest_scores <- reactiveVal(data.frame())
+  peer_points_cached <- reactiveVal(data.frame())
+
+  mock_scores_df <- function() {
+    mock_scales <- c(
+      "Experience of Unity",
+      "Spiritual Experience",
+      "Blissful State",
+      "Insightfulness",
+      "Disembodiment",
+      "Impaired Control and Cognition",
+      "Anxiety",
+      "Complex Imagery",
+      "Elementary Imagery",
+      "Audio-Visual Synesthesia",
+      "Changed Meaning of Percepts"
+    )
+    data.frame(
+      scale_id = mock_scales,
+      score_value = c(68, 52, 72, 60, 38, 44, 32, 55, 48, 41, 64),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  build_peer_points <- function(scale_ids, seed_key) {
+    seed_val <- sum(utf8ToInt(seed_key))
+    set.seed(seed_val)
+    data.frame(
+      scale_id = rep(scale_ids, each = 28),
+      value = pmin(100, pmax(0, rnorm(length(scale_ids) * 28, mean = 55, sd = 18))),
+      stringsAsFactors = FALSE
+    )
+  }
 
   output$validation_error <- renderText(validation_error())
   output$submission_status <- renderText(submission_status())
 
+  output$feedback_panel <- renderUI({
+    step <- current_step()
+    hidden <- step != 14
+    nav_actions <- if (step == 14) {
+      div(
+        class = "nav-actions",
+        actionButton("prev_step", "Back")
+      )
+    } else {
+      NULL
+    }
+    div(
+      style = if (hidden) "display:none;" else "",
+      tagList(
+        div(
+          class = "app-card",
+          h3("Feedback"),
+          div(id = "feedback_loading", class = "muted", "Preparing feedback..."),
+          plotOutput("radar_plot", height = "540px", width = "100%"),
+          verbatimTextOutput("submission_status")
+        ),
+        nav_actions
+      )
+    )
+  })
+
+  observeEvent(list(input$q0, input$q1), {
+    drug <- if (is.null(input$q0)) "" else input$q0
+    dose <- if (is.null(input$q1)) "" else input$q1
+    if (drug == "" || dose == "") {
+      return()
+    }
+    scores_preview <- latest_scores()
+    if (nrow(scores_preview) == 0) {
+      scores_preview <- mock_scores_df()
+    }
+    peer_points_cached(build_peer_points(scores_preview$scale_id, paste0(drug, "-", dose)))
+  }, ignoreInit = FALSE)
+
   output$radar_plot <- renderPlot({
     scores <- latest_scores()
-
     if (nrow(scores) == 0) {
-        mock_scales <- c(
-          "Experience of Unity",
-          "Spiritual Experience",
-          "Blissful State",
-          "Insightfulness",
-          "Disembodiment",
-          "Impaired Control and Cognition",
-          "Anxiety",
-          "Complex Imagery",
-          "Elementary Imagery",
-          "Audio-Visual Synesthesia",
-          "Changed Meaning of Percepts"
-        )
-        scores <- data.frame(
-          scale_id = mock_scales,
-          score_value = c(68, 52, 72, 60, 38, 44, 32, 55, 48, 41, 64),
-          stringsAsFactors = FALSE
-        )
-      }
+      scores <- mock_scores_df()
+    }
 
-      set.seed(42)
-      peer_points <- data.frame(
-        scale_id = rep(scores$scale_id, each = 28),
-        value = pmin(100, pmax(0, rnorm(length(scores$scale_id) * 28, mean = 55, sd = 18))),
-        stringsAsFactors = FALSE
-      )
+    peer_points <- peer_points_cached()
+    if (is.null(peer_points) || nrow(peer_points) == 0) {
+      peer_points <- build_peer_points(scores$scale_id, "default")
+    }
 
     width <- session$clientData$output_radar_plot_width
     if (is.null(width) || is.na(width) || width <= 0) {
@@ -1397,7 +1439,7 @@ output$tracer_ui <- renderUI({
     max(360, min(540, width * 0.85))
   }, res = 120, antialias = "default")
 
-  outputOptions(output, "radar_plot", suspendWhenHidden = TRUE)
+  outputOptions(output, "radar_plot", suspendWhenHidden = FALSE)
   outputOptions(output, "questionnaire_ui_page1", suspendWhenHidden = FALSE)
   outputOptions(output, "questionnaire_ui_page2", suspendWhenHidden = FALSE)
   outputOptions(output, "questionnaire_ui_page3", suspendWhenHidden = FALSE)
