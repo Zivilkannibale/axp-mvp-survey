@@ -98,6 +98,27 @@ ui <- fluidPage(
       #p6m-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
       #p6m-layer canvas { width: 100%; height: 100%; display: block; }
       .app-shell { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 28px 20px 48px; }
+      .app-shell .irs,
+      .app-shell .slider-labels,
+      .app-shell #radar_plot,
+      .app-shell .app-card,
+      .app-shell .nav-actions {
+        transition: opacity 210ms ease;
+      }
+      .app-shell.is-booting .irs,
+      .app-shell.is-booting .slider-labels,
+      .app-shell.is-booting #radar_plot,
+      .app-shell.is-booting .app-card,
+      .app-shell.is-booting .nav-actions {
+        opacity: 0;
+      }
+      .app-shell.is-transitioning .irs,
+      .app-shell.is-transitioning .slider-labels,
+      .app-shell.is-transitioning #radar_plot,
+      .app-shell.is-transitioning .app-card,
+      .app-shell.is-transitioning .nav-actions {
+        opacity: 0;
+      }
       .app-logo { display: block; width: 120px; height: auto; margin: 0 0 12px; }
       .app-eyebrow { text-transform: uppercase; font-size: 16px; letter-spacing: 0.18em; color: #000000; font-weight: 700; margin: -4px 0 6px; }
       .app-title { font-size: 28px; margin: 8px 0 12px; }
@@ -268,6 +289,13 @@ ui <- fluidPage(
         text-transform: uppercase;
         font-weight: 700;
         color: rgba(40, 45, 60, 0.55);
+        min-height: 14px;
+      }
+      .experience-header {
+        transition: opacity 210ms ease;
+      }
+      .experience-header.is-pulsing {
+        opacity: 0;
       }
       .intro-start {
         border-radius: 999px;
@@ -519,6 +547,18 @@ ui <- fluidPage(
         color: var(--muted);
         font-size: 12px;
       }
+      .feedback-panel {
+        overflow: hidden;
+        transition: opacity 180ms ease, max-height 220ms ease;
+        max-height: 1600px;
+        opacity: 1;
+      }
+      .feedback-panel.is-hidden {
+        max-height: 0;
+        opacity: 0;
+        pointer-events: none;
+        margin: 0;
+      }
     "))
     ,
     tags$script(HTML({
@@ -534,11 +574,17 @@ ui <- fluidPage(
         var bootCurrent = 0;
         var bootTick = null;
         var p6mEnabled = P6M_ENABLED_PLACEHOLDER;
+        var appShell = null;
 
         function hideBoot() {
           if (bootHidden) return;
           bootHidden = true;
           if (boot) boot.classList.add('hidden');
+          if (appShell) {
+            setTimeout(function() {
+              appShell.classList.remove('is-booting');
+            }, 120);
+          }
         }
 
         function setBootProgress(pct) {
@@ -583,6 +629,7 @@ ui <- fluidPage(
           busy = document.getElementById('busy-overlay');
           bootBar = document.getElementById('boot-progress-bar');
           bootPct = document.getElementById('boot-progress-pct');
+          appShell = document.querySelector('.app-shell');
 
           var assets = ['circe-logo.png'];
           if (p6mEnabled) {
@@ -622,6 +669,26 @@ ui <- fluidPage(
         });
 
         if (window.Shiny) {
+          function pulseHeader(node) {
+            if (!node) return;
+            if (node.__pulseTimer) {
+              clearTimeout(node.__pulseTimer);
+              node.__pulseTimer = null;
+            }
+            if (node.__pulsePending) return;
+            node.__pulsePending = true;
+            requestAnimationFrame(function() {
+              node.__pulsePending = false;
+              node.classList.remove('is-pulsing');
+              void node.offsetWidth;
+              node.classList.add('is-pulsing');
+              node.__pulseTimer = setTimeout(function() {
+                node.classList.remove('is-pulsing');
+                node.__pulseTimer = null;
+              }, 210);
+            });
+          }
+
           function waitForUIAndFonts(cb) {
             var tries = 0;
             function check() {
@@ -648,6 +715,11 @@ ui <- fluidPage(
             if (bootTimeout) clearTimeout(bootTimeout);
             waitForUIAndFonts(function() {
               setBootProgress(100);
+              if (appShell) {
+                setTimeout(function() {
+                  appShell.classList.remove('is-booting');
+                }, 120);
+              }
             });
           });
           Shiny.addCustomMessageHandler('bootProgress', function(msg) {
@@ -655,9 +727,64 @@ ui <- fluidPage(
           });
           Shiny.addCustomMessageHandler('busyShow', function() {
             if (busy) busy.classList.remove('hidden');
+            if (appShell) appShell.classList.add('is-transitioning');
           });
           Shiny.addCustomMessageHandler('busyHide', function() {
             if (busy) busy.classList.add('hidden');
+            if (appShell) {
+              setTimeout(function() {
+                appShell.classList.remove('is-transitioning');
+              }, 210);
+            }
+          });
+          Shiny.addCustomMessageHandler('pulseTransition', function() {
+            if (!appShell) return;
+            appShell.classList.remove('is-transitioning');
+            void appShell.offsetWidth;
+            appShell.classList.add('is-transitioning');
+            setTimeout(function() {
+              appShell.classList.remove('is-transitioning');
+            }, 210);
+          });
+          Shiny.addCustomMessageHandler('pulseHeaders', function() {
+            var headers = document.querySelectorAll('.experience-header');
+            headers.forEach(function(node) {
+              pulseHeader(node);
+            });
+          });
+
+          var lastPulseAt = 0;
+          var suppressPulseUntil = 0;
+          function pulsesAllowed() {
+            return Date.now() >= suppressPulseUntil;
+          }
+          function pulseHeadersOnce() {
+            if (!pulsesAllowed()) return;
+            var now = Date.now();
+            if (now - lastPulseAt < 180) return;
+            lastPulseAt = now;
+            var headers = document.querySelectorAll('.experience-header');
+            headers.forEach(function(node) {
+              pulseHeader(node);
+            });
+          }
+
+          document.addEventListener('click', function(evt) {
+            var target = evt.target;
+            if (!target) return;
+            if (target.id === 'next_step' || target.id === 'prev_step') {
+              if (appShell) appShell.classList.add('is-transitioning');
+              if (busy && bootHidden) busy.classList.remove('hidden');
+              setTimeout(function() {
+                if (appShell) appShell.classList.remove('is-transitioning');
+                if (busy) busy.classList.add('hidden');
+              }, 420);
+            }
+          }, true);
+
+          Shiny.addCustomMessageHandler('suppressHeaderPulse', function(msg) {
+            var ms = (msg && msg.ms) ? msg.ms : 300;
+            suppressPulseUntil = Date.now() + ms;
           });
         }
       })();
@@ -693,7 +820,8 @@ ui <- fluidPage(
   ),
   if (P6M_ENABLED) div(id = "p6m-layer"),
     div(
-      class = "app-shell",
+      id = "app-shell",
+      class = "app-shell is-booting",
       div(
         class = "app-top",
         tags$img(src = "circe-logo.png", alt = "Circe logo", class = "app-logo"),
@@ -908,17 +1036,91 @@ server <- function(input, output, session) {
     }
   })
 
+  selected_drug <- reactiveVal("")
+  selected_dose <- reactiveVal("")
+  suppress_pulse_server <- reactiveVal(FALSE)
+  question_type_map <- list()
+
+  observeEvent(input$q0, {
+    if (!is.null(input$q0) && input$q0 != "") {
+      selected_drug(input$q0)
+    }
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$q1, {
+    if (!is.null(input$q1) && input$q1 != "") {
+      selected_dose(input$q1)
+    }
+  }, ignoreInit = TRUE)
+
+  suppress_header_pulse <- function(ms = 350) {
+    suppress_pulse_server(TRUE)
+    session$sendCustomMessage("suppressHeaderPulse", list(ms = ms))
+    session$onFlushed(function() {
+      suppress_pulse_server(FALSE)
+    }, once = TRUE)
+  }
+
+  restore_question_input <- function(item_id, value, input_type) {
+    if (is.null(value) || value == "") return()
+    if (is.null(input_type) || input_type == "") return()
+    suppress_header_pulse()
+    if (input_type == "selectInput") {
+      updateSelectInput(session, item_id, selected = value)
+    } else if (input_type == "selectizeInput") {
+      updateSelectizeInput(session, item_id, selected = value, server = TRUE)
+    } else if (input_type == "radioButtons") {
+      updateRadioButtons(session, item_id, selected = value)
+    }
+  }
+
+  observeEvent(current_step(), {
+    step <- current_step()
+    drug <- selected_drug()
+    dose <- selected_dose()
+    q0_type <- question_type_map[["q0"]]
+    q1_type <- question_type_map[["q1"]]
+    session$onFlushed(function() {
+      if (step == 4) {
+        restore_question_input("q0", drug, q0_type)
+      } else if (step == 5) {
+        restore_question_input("q1", dose, q1_type)
+      }
+    }, once = TRUE)
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$q0, {
+    if (isTRUE(suppress_pulse_server())) return()
+    if (!is.null(input$q0) && input$q0 != "") {
+      session$onFlushed(function() {
+        session$sendCustomMessage("pulseHeaders", list())
+      }, once = TRUE)
+    }
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$q1, {
+    if (isTRUE(suppress_pulse_server())) return()
+    if (!is.null(input$q1) && input$q1 != "") {
+      session$onFlushed(function() {
+        session$sendCustomMessage("pulseHeaders", list())
+      }, once = TRUE)
+    }
+  }, ignoreInit = TRUE)
+
   experience_header_value <- function(include_dose = TRUE) {
-    drug <- ifelse(is.null(input$q0) || input$q0 == "", "Your experience", input$q0)
-    dose <- ifelse(is.null(input$q1) || input$q1 == "", "", input$q1)
-    parts <- c(drug, if (include_dose && dose != "") dose else NULL)
+    drug <- selected_drug()
+    dose <- selected_dose()
+    if (is.null(drug) || drug == "") {
+      drug <- "Your experience"
+    }
+    parts <- c(drug, if (include_dose && !is.null(dose) && dose != "") dose else NULL)
     toupper(paste(parts, collapse = " - "))
   }
 
-  output$experience_header_step1 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = FALSE)) })
-  output$experience_header_step2 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = TRUE)) })
-  output$experience_header_step3 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = TRUE)) })
-  output$experience_header_step4 <- renderUI({ div(class = "prep-eyebrow", experience_header_value(include_dose = TRUE)) })
+  output$experience_header_step1 <- renderText({ experience_header_value(include_dose = FALSE) })
+  output$experience_header_step2 <- renderText({ experience_header_value(include_dose = TRUE) })
+  output$experience_header_step3 <- renderText({ experience_header_value(include_dose = TRUE) })
+  output$experience_header_step4 <- renderText({ experience_header_value(include_dose = TRUE) })
 
   output$page_ui <- renderUI({
     step <- current_step()
@@ -1016,7 +1218,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
-          uiOutput("experience_header_step1"),
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step1")),
           uiOutput("questionnaire_ui_page1"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -1033,7 +1235,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
-          uiOutput("experience_header_step2"),
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step2")),
           uiOutput("questionnaire_ui_page2"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -1050,7 +1252,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
-          uiOutput("experience_header_step3"),
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step3")),
           h3("Describe the context in which you had this experience."),
           uiOutput("questionnaire_ui_page3"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1068,7 +1270,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
-          uiOutput("experience_header_step4"),
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Perfect!"),
           div(
             class = "prep-body",
@@ -1088,6 +1290,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider1"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1105,6 +1308,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider2"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1122,6 +1326,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider3"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1139,6 +1344,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider4"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1156,6 +1362,7 @@ server <- function(input, output, session) {
         uiOutput("progress_steps"),
         div(
           class = "app-card",
+          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Freely describe your experience in your own words"),
           uiOutput("questionnaire_ui_free"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1204,6 +1411,11 @@ tracer_ui_cached <- reactiveVal(NULL)
 observeEvent(questionnaire_df(), {
   df <- questionnaire_df()
   df_questions <- df[df$type != "experience_tracer", ]
+  type_map <- list()
+  if (!is.null(df_questions) && nrow(df_questions) > 0) {
+    type_map <- setNames(as.character(df_questions$type), as.character(df_questions$item_id))
+  }
+  question_type_map <<- type_map
   page1_df <- df_questions[df_questions$item_id == "q0", ]
   page2_df <- df_questions[df_questions$item_id == "q1", ]
   page3_df <- df_questions[df_questions$item_id == "q_context", ]
@@ -1244,7 +1456,7 @@ observeEvent(questionnaire_df(), {
 output$questionnaire_ui_page1 <- renderUI({
   cached <- questionnaire_ui_page1()
   if (is.null(cached)) {
-    div(class = "muted", "Loading questions...")
+    NULL
   } else {
     cached
   }
@@ -1253,7 +1465,7 @@ output$questionnaire_ui_page1 <- renderUI({
 output$questionnaire_ui_page2 <- renderUI({
   cached <- questionnaire_ui_page2()
   if (is.null(cached)) {
-    div(class = "muted", "Loading questions...")
+    NULL
   } else {
     cached
   }
@@ -1262,7 +1474,7 @@ output$questionnaire_ui_page2 <- renderUI({
 output$questionnaire_ui_page3 <- renderUI({
   cached <- questionnaire_ui_page3()
   if (is.null(cached)) {
-    div(class = "muted", "Loading questions...")
+    NULL
   } else {
     cached
   }
@@ -1271,7 +1483,7 @@ output$questionnaire_ui_page3 <- renderUI({
 output$questionnaire_ui_slider1 <- renderUI({
   cached <- questionnaire_ui_slider1()
   if (is.null(cached)) {
-    div(class = "muted", "Loading questions...")
+    NULL
   } else {
     cached
   }
@@ -1280,7 +1492,7 @@ output$questionnaire_ui_slider1 <- renderUI({
 output$questionnaire_ui_slider2 <- renderUI({
   cached <- questionnaire_ui_slider2()
   if (is.null(cached)) {
-    div(class = "muted", "Loading questions...")
+    NULL
   } else {
     cached
   }
@@ -1289,7 +1501,7 @@ output$questionnaire_ui_slider2 <- renderUI({
 output$questionnaire_ui_slider3 <- renderUI({
   cached <- questionnaire_ui_slider3()
   if (is.null(cached)) {
-    div(class = "muted", "Loading questions...")
+    NULL
   } else {
     cached
   }
@@ -1298,7 +1510,7 @@ output$questionnaire_ui_slider3 <- renderUI({
 output$questionnaire_ui_slider4 <- renderUI({
   cached <- questionnaire_ui_slider4()
   if (is.null(cached)) {
-    div(class = "muted", "Loading questions...")
+    NULL
   } else {
     cached
   }
@@ -1307,7 +1519,7 @@ output$questionnaire_ui_slider4 <- renderUI({
 output$questionnaire_ui_free <- renderUI({
   cached <- questionnaire_ui_free()
   if (is.null(cached)) {
-    div(class = "muted", "Loading question...")
+    NULL
   } else {
     cached
   }
@@ -1375,7 +1587,7 @@ output$tracer_ui <- renderUI({
       NULL
     }
     div(
-      style = if (hidden) "display:none;" else "",
+      class = if (hidden) "feedback-panel is-hidden" else "feedback-panel",
       tagList(
         div(
           class = "app-card",
