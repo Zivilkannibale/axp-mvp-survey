@@ -157,15 +157,31 @@ quetzio_generate_ui <- function(items) {
       },
       radioButtons = {
         choices <- quetzio_split_options(item$options)
-        radioButtons(input_id, label, choices = choices, width = item$width)
+        selected_val <- NULL
+        if (input_id == "q1") selected_val <- character(0)
+        radioButtons(input_id, label, choices = choices, selected = selected_val, width = item$width)
       },
       selectInput = {
         choices <- quetzio_split_options(item$options)
+        selectize_flag <- input_id != "q0"
         if (!is.null(item$placeholder) && !is.na(item$placeholder) && item$placeholder != "") {
           choices <- c(setNames("", item$placeholder), choices)
-          selectInput(input_id, label, choices = choices, selected = "", width = item$width)
+          selectInput(
+            input_id,
+            label,
+            choices = choices,
+            selected = "",
+            width = item$width,
+            selectize = selectize_flag
+          )
         } else {
-          selectInput(input_id, label, choices = choices, width = item$width)
+          selectInput(
+            input_id,
+            label,
+            choices = choices,
+            width = item$width,
+            selectize = selectize_flag
+          )
         }
       },
       selectizeInput = {

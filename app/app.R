@@ -74,6 +74,40 @@ ui <- fluidPage(
     if (P6M_ENABLED) tags$script(src = "p6m-bg.js", defer = "defer"),
     tags$script(src = "signature_pad.js", defer = "defer"),
     tags$script(src = "experience_tracer.js", defer = "defer"),
+    tags$script(HTML("
+      $(function(){
+        function ensureDrugPlaceholder(){
+          var $el = $('#q0');
+          if (!$el.length) return;
+          var $wrap = $el.closest('.select-placeholder-wrap');
+          if (!$wrap.length) {
+            $el.wrap('<div class=\"select-placeholder-wrap\"></div>');
+            $wrap = $el.closest('.select-placeholder-wrap');
+            var placeholder = $el.find('option[value=\"\"]').first().text();
+            $wrap.append('<span class=\"select-placeholder-text\"></span>');
+            $wrap.find('.select-placeholder-text').text(placeholder || 'Please choose a drug to continue');
+          }
+          if (!$el.val()) {
+            $el.addClass('is-placeholder');
+            $wrap.removeClass('has-value');
+          } else {
+            $el.removeClass('is-placeholder');
+            $wrap.addClass('has-value');
+          }
+        }
+        $(document).on('change', '#q0', ensureDrugPlaceholder);
+        setTimeout(ensureDrugPlaceholder, 0);
+      });
+    ")),
+    tags$script(HTML("
+      Shiny.addCustomMessageHandler('clearRadioSelection', function(message){
+        if (!message || !message.id) return;
+        var $inputs = $('input[name=\"' + message.id + '\"]');
+        if (!$inputs.length) return;
+        $inputs.prop('checked', false);
+        Shiny.setInputValue(message.id, '', {priority: 'event'});
+      });
+    ")),
     tags$style(HTML("
       :root {
         --accent: #6b3df0;
@@ -152,6 +186,19 @@ ui <- fluidPage(
       .quetzio-question:last-child { border-bottom: none; }
       .quetzio-question label { font-size: 18px; font-weight: 500; color: var(--text); }
       .form-control, .selectize-input { border-radius: 999px; border: 1px solid var(--border); box-shadow: none; }
+      #q0.is-placeholder { color: #8c90a4; }
+      #q0 option[value=\"\"] { color: #8c90a4; display: none; }
+      .select-placeholder-wrap { position: relative; }
+      .select-placeholder-text {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #8c90a4;
+        pointer-events: none;
+        font-size: 16px;
+      }
+      .select-placeholder-wrap.has-value .select-placeholder-text { display: none; }
       .form-control:focus, .selectize-input:focus, .selectize-input.focus, .selectize-control .selectize-input.focus {
         border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(107, 61, 240, 0.18);
@@ -445,7 +492,7 @@ ui <- fluidPage(
         align-items: center;
         justify-content: center;
         background: #000000;
-        color: #9bff6a;
+        color: #b892ff;
         font-family: 'Press Start 2P', 'Courier New', monospace;
         letter-spacing: 0.05em;
         transition: opacity 220ms ease, visibility 220ms ease;
@@ -456,36 +503,36 @@ ui <- fluidPage(
       }
       .boot-terminal {
         width: min(620px, 94vw);
-        border: 1px solid rgba(155, 255, 106, 0.5);
+        border: 1px solid rgba(184, 146, 255, 0.55);
         border-radius: 16px;
         background: rgba(4, 6, 8, 0.85);
         padding: 18px 20px 16px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
       }
-      .boot-title { font-size: 10px; text-transform: uppercase; color: #6bdc58; }
+      .boot-title { font-size: 10px; text-transform: uppercase; color: #9f73ff; }
       .boot-lines { display: none; }
       .boot-progress {
         height: 6px;
         border-radius: 999px;
-        background: rgba(100, 255, 120, 0.18);
+        background: rgba(140, 96, 255, 0.22);
         overflow: hidden;
       }
       .boot-progress span {
         display: block;
         height: 100%;
         width: 10%;
-        background: linear-gradient(90deg, #66ff7a, #c6ff8f);
+        background: linear-gradient(90deg, #8f5bff, #d3b1ff);
         transition: width 240ms ease;
       }
-      .boot-foot { margin-top: 12px; font-size: 10px; color: #6bdc58; }
+      .boot-foot { margin-top: 12px; font-size: 10px; color: #9f73ff; }
       .boot-quip {
         font-size: 13px;
         line-height: 1.6;
-        color: #9bff6a;
+        color: #c7a5ff;
         letter-spacing: 0.06em;
         font-weight: 600;
         margin-top: 14px;
-        text-shadow: 0 0 8px rgba(155, 255, 106, 0.25);
+        text-shadow: 0 0 8px rgba(155, 115, 255, 0.35);
       }
       .busy-overlay {
         background: rgba(12, 14, 20, 0.6);
@@ -680,6 +727,28 @@ ui <- fluidPage(
           bootTick = requestAnimationFrame(bootLoop);
         }
 
+        var scrollTopPending = false;
+        function attemptScrollTop() {
+          var target = document.scrollingElement || document.documentElement || document.body;
+          if (target) target.scrollTop = 0;
+          if (document.documentElement) document.documentElement.scrollTop = 0;
+          if (document.body) document.body.scrollTop = 0;
+          window.scrollTo(0, 0);
+          var shell = document.querySelector('.app-shell');
+          if (shell) shell.scrollTop = 0;
+          try {
+            if (window.parent && window.parent !== window) {
+              window.parent.scrollTo(0, 0);
+              if (window.parent.document && window.parent.document.documentElement) {
+                window.parent.document.documentElement.scrollTop = 0;
+              }
+              if (window.parent.document && window.parent.document.body) {
+                window.parent.document.body.scrollTop = 0;
+              }
+            }
+          } catch (e) {}
+        }
+
         function showBusy() {
           if (!busy) return;
           if (!bootHidden) return;
@@ -692,6 +761,9 @@ ui <- fluidPage(
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+          if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+          }
           boot = document.getElementById('boot-overlay');
           busy = document.getElementById('busy-overlay');
           bootBar = document.getElementById('boot-progress-bar');
@@ -733,6 +805,12 @@ ui <- fluidPage(
 
         document.addEventListener('shiny:idle', function() {
           hideBusy();
+          if (scrollTopPending) {
+            attemptScrollTop();
+            setTimeout(attemptScrollTop, 50);
+            setTimeout(attemptScrollTop, 200);
+            scrollTopPending = false;
+          }
         });
 
         if (window.Shiny) {
@@ -817,6 +895,14 @@ ui <- fluidPage(
             var headers = document.querySelectorAll('.experience-header');
             headers.forEach(function(node) {
               pulseHeader(node);
+            });
+          });
+          Shiny.addCustomMessageHandler('scrollToTop', function() {
+            scrollTopPending = true;
+            requestAnimationFrame(function() {
+              attemptScrollTop();
+              setTimeout(attemptScrollTop, 50);
+              setTimeout(attemptScrollTop, 200);
             });
           });
 
@@ -993,6 +1079,7 @@ server <- function(input, output, session) {
   load_status <- reactiveVal(initial_status)
   current_step <- reactiveVal(1)
   navigation_error <- reactiveVal("")
+  validation_error <- reactiveVal("")
   progress_start_step <- 1
   progress_end_step <- 13
 
@@ -1046,70 +1133,134 @@ server <- function(input, output, session) {
   observeEvent(input$next_step, {
     step <- current_step()
     if (step == 1) {
+      validation_error("")
       navigation_error("")
       current_step(2)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 2) {
       if (!isTRUE(input$consent)) {
         navigation_error("Consent is required before continuing.")
       } else {
+        validation_error("")
         navigation_error("")
         current_step(3)
         show_transition_busy()
+        session$onFlushed(function() {
+          session$sendCustomMessage("scrollToTop", list())
+        }, once = TRUE)
       }
     } else if (step == 3) {
+      validation_error("")
       navigation_error("")
       current_step(4)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 4) {
-      navigation_error("")
-      current_step(5)
-      show_transition_busy()
+      if (is.null(input$q0) || input$q0 == "") {
+        validation_error("Please select a substance to continue.")
+      } else {
+        validation_error("")
+        navigation_error("")
+        current_step(5)
+        show_transition_busy()
+        session$onFlushed(function() {
+          session$sendCustomMessage("scrollToTop", list())
+        }, once = TRUE)
+      }
     } else if (step == 5) {
-      navigation_error("")
-      current_step(6)
-      show_transition_busy()
+      if (is.null(input$q1) || input$q1 == "") {
+        validation_error("Please select a dose to continue.")
+      } else {
+        validation_error("")
+        navigation_error("")
+        current_step(6)
+        show_transition_busy()
+        session$onFlushed(function() {
+          session$sendCustomMessage("scrollToTop", list())
+        }, once = TRUE)
+      }
     } else if (step == 6) {
+      validation_error("")
       navigation_error("")
       current_step(7)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 7) {
+      validation_error("")
       navigation_error("")
       current_step(8)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 8) {
+      validation_error("")
       navigation_error("")
       current_step(9)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 9) {
+      validation_error("")
       navigation_error("")
       current_step(10)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 10) {
+      validation_error("")
       navigation_error("")
       current_step(11)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 11) {
+      validation_error("")
       navigation_error("")
       current_step(12)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 12) {
+      validation_error("")
       navigation_error("")
       current_step(13)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     } else if (step == 13) {
+      validation_error("")
       navigation_error("")
       current_step(14)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     }
   })
 
   observeEvent(input$prev_step, {
     step <- current_step()
     if (step > 1) {
+      validation_error("")
       navigation_error("")
       current_step(step - 1)
       show_transition_busy()
+      session$onFlushed(function() {
+        session$sendCustomMessage("scrollToTop", list())
+      }, once = TRUE)
     }
   })
 
@@ -1120,12 +1271,14 @@ server <- function(input, output, session) {
 
   observeEvent(input$q0, {
     if (!is.null(input$q0) && input$q0 != "") {
+      validation_error("")
       selected_drug(input$q0)
     }
   }, ignoreInit = TRUE)
 
   observeEvent(input$q1, {
     if (!is.null(input$q1) && input$q1 != "") {
+      validation_error("")
       selected_dose(input$q1)
     }
   }, ignoreInit = TRUE)
@@ -1162,6 +1315,9 @@ server <- function(input, output, session) {
         restore_question_input("q0", drug, q0_type)
       } else if (step == 5) {
         restore_question_input("q1", dose, q1_type)
+        if (is.null(dose) || dose == "") {
+          session$sendCustomMessage("clearRadioSelection", list(id = "q1"))
+        }
       }
     }, once = TRUE)
   }, ignoreInit = TRUE)
@@ -1604,7 +1760,6 @@ output$tracer_ui <- renderUI({
   }
 })
 
-  validation_error <- reactiveVal("")
   submission_status <- reactiveVal("")
   latest_scores <- reactiveVal(data.frame())
   peer_points_cached <- reactiveVal(data.frame())
