@@ -114,13 +114,26 @@ quetzio_generate_ui <- function(items) {
         }
         ticks_val <- if (!is.na(item$slider_ticks)) as.logical(item$slider_ticks) else FALSE
         width_val <- if (is.null(item$width) || is.na(item$width) || item$width == "") "100%" else item$width
+        slider_value <- item$slider_value
+        if (is.null(slider_value) || is.na(slider_value) || slider_value == "") {
+          min_val <- as.numeric(item$slider_min)
+          max_val <- as.numeric(item$slider_max)
+          if (!is.na(min_val) && !is.na(max_val)) {
+            midpoint <- (min_val + max_val) / 2
+            step_val <- as.numeric(item$slider_step)
+            if (!is.na(step_val) && step_val > 0) {
+              midpoint <- min_val + round((midpoint - min_val) / step_val) * step_val
+            }
+            slider_value <- midpoint
+          }
+        }
         tagList(
           sliderInput(
             input_id,
             label,
             min = item$slider_min,
             max = item$slider_max,
-            value = item$slider_value,
+            value = slider_value,
             step = item$slider_step,
             pre = item$slider_pre,
             post = item$slider_post,

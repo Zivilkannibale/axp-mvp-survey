@@ -130,9 +130,10 @@ ui <- fluidPage(
       }
       .app-links {
         display: flex;
-        gap: 12px;
-        align-items: center;
+        gap: 6px;
+        align-items: flex-start;
         margin-top: 12px;
+        flex-direction: column;
       }
       .app-link {
         font-size: 19px;
@@ -262,19 +263,54 @@ ui <- fluidPage(
       .consent-checkbox {
         margin-top: 8px;
       }
-      .consent-checkbox label {
-        color: var(--text);
-        font-weight: 600;
-        font-size: 28px;
-        display: flex;
+      .consent-pill {
+        border-radius: 999px;
+        border: 1px solid rgba(107, 61, 240, 0.6);
+        color: #6b3df0;
+        background: #fff;
+        padding: 10px 20px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 14px;
+        display: inline-flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
         cursor: pointer;
+        user-select: none;
       }
-      .consent-checkbox input[type='checkbox'] {
-        width: 26px;
-        height: 26px;
-        accent-color: var(--accent);
+      .consent-pill:has(input:checked) {
+        background: rgba(107, 61, 240, 0.08);
+      }
+      .consent-pill input[type='checkbox'] {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        pointer-events: none;
+      }
+      .consent-indicator {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(107, 61, 240, 0.65);
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        box-sizing: border-box;
+        background: transparent;
+      }
+      .consent-indicator::after {
+        content: '';
+        width: 10px;
+        height: 10px;
+        transform: scale(0);
+        transition: transform 120ms ease-in-out;
+        background: #6b3df0;
+        border-radius: 999px;
+      }
+      .consent-pill input[type='checkbox']:checked + .consent-indicator::after {
+        transform: scale(1);
       }
       .prep-body {
         color: var(--text);
@@ -292,6 +328,7 @@ ui <- fluidPage(
         min-height: 14px;
       }
       .experience-header {
+        color: var(--accent);
         transition: opacity 210ms ease;
       }
       .experience-header.is-pulsing {
@@ -336,6 +373,36 @@ ui <- fluidPage(
         text-transform: none;
         z-index: 3;
         text-align: center;
+      }
+      .intro-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+        max-width: 520px;
+      }
+      .intro-controls .form-group {
+        margin-bottom: 0;
+      }
+      .intro-reload {
+        border-radius: 999px;
+        border: 1px solid rgba(107, 61, 240, 0.6);
+        color: #6b3df0;
+        background: #fff;
+        padding: 8px 20px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-size: 12px;
+        align-self: flex-start;
+      }
+      .intro-reload:hover {
+        background: rgba(107, 61, 240, 0.06);
+      }
+      .intro-status {
+        font-size: 13px;
+        color: var(--text);
+        margin-top: 4px;
       }
       .submit-disabled {
         border-radius: 999px;
@@ -845,6 +912,11 @@ ui <- fluidPage(
       ),
       div(class = "app-eyebrow", "AXP survey"),
       div(class = "app-title", "Participant Questionnaire"),
+      conditionalPanel(
+        condition = "output.showExperienceHeader == 'TRUE'",
+        div(class = "prep-eyebrow experience-header", textOutput("experience_header_persistent"))
+      ),
+      uiOutput("progress_steps"),
       uiOutput("page_ui"),
       uiOutput("feedback_panel")
     )
@@ -860,12 +932,12 @@ server <- function(input, output, session) {
   format_load_status <- function(sheet_name, is_error = FALSE, message = NULL) {
     timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
     if (is_error) {
-      return(paste0("Load failed at ", timestamp, ": ", message))
+      return(paste0("Sheet load failed (", timestamp, "): ", message))
     }
     if (is.null(sheet_name) || sheet_name == "") {
-      return(paste0("Loaded at ", timestamp, " from configured sheet tab."))
+      return(paste0("Loaded sheet: configured default tab (", timestamp, ")."))
     }
-    paste0("Loaded at ", timestamp, " from sheet tab: ", sheet_name)
+    paste0("Loaded sheet: ", sheet_name, " (", timestamp, ").")
   }
 
   update_questionnaire <- function(sheet_name_override = NULL) {
@@ -921,8 +993,8 @@ server <- function(input, output, session) {
   load_status <- reactiveVal(initial_status)
   current_step <- reactiveVal(1)
   navigation_error <- reactiveVal("")
-  progress_start_step <- 4
-  progress_end_step <- 12
+  progress_start_step <- 1
+  progress_end_step <- 13
 
   observeEvent(input$reload_questionnaire, {
     sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
@@ -930,6 +1002,11 @@ server <- function(input, output, session) {
   })
 
   output$load_status <- renderText(load_status())
+  output$showExperienceHeader <- renderText({
+    step <- current_step()
+    step >= progress_start_step && step <= progress_end_step
+  })
+  outputOptions(output, "showExperienceHeader", suspendWhenHidden = FALSE)
   output$progress_steps <- renderUI({
     step <- current_step()
     if (step < progress_start_step || step > progress_end_step) {
@@ -1111,16 +1188,17 @@ server <- function(input, output, session) {
     drug <- selected_drug()
     dose <- selected_dose()
     if (is.null(drug) || drug == "") {
-      drug <- "Your experience"
+      drug <- "Each experience is unique"
     }
     parts <- c(drug, if (include_dose && !is.null(dose) && dose != "") dose else NULL)
     toupper(paste(parts, collapse = " - "))
   }
 
-  output$experience_header_step1 <- renderText({ experience_header_value(include_dose = FALSE) })
-  output$experience_header_step2 <- renderText({ experience_header_value(include_dose = TRUE) })
-  output$experience_header_step3 <- renderText({ experience_header_value(include_dose = TRUE) })
-  output$experience_header_step4 <- renderText({ experience_header_value(include_dose = TRUE) })
+  output$experience_header_persistent <- renderText({
+    step <- current_step()
+    include_dose <- step >= 5
+    experience_header_value(include_dose = include_dose)
+  })
 
   output$page_ui <- renderUI({
     step <- current_step()
@@ -1137,26 +1215,30 @@ server <- function(input, output, session) {
               div(
                 class = "intro-body",
                 p(
-                  "During development you can feed the questionnaire from either a local CSV file or a Google Sheet (",
+                  "This survey can be sourced from a local CSV file or from a shared Google Sheet (",
                   tags$a(
                     href = "https://docs.google.com/spreadsheets/d/1o2eCjyVRHiIYzVaQ8Z4wAA0XmOwGKWfTj0d36wfw_jc/edit?usp=sharing",
                     target = "_blank",
                     rel = "noopener",
                     "open sheet"
                   ),
-                  ")."
+                  "). Choose whichever workflow is easiest for you."
                 ),
                 tags$ul(
-                  tags$li("Local CSV: use docs/sample_questionnaire.csv for quick offline edits."),
-                  tags$li("Google Sheets (service account): each tab represents a version (e.g., v0.2, v0.3) so collaborators can iterate without touching code.")
+                  tags$li("Local CSV: edit docs/sample_questionnaire.csv for quick, offline changes on this machine."),
+                  tags$li("Google Sheets: edit the shared sheet so collaborators can update content without touching code.")
                 ),
-                p("To switch versions, set the default tab in .Renviron or type a tab name below and press Reload.")
+                p("Tabs can represent versions (e.g., v0.2, v0.3) or different languages. Set the default tab in .Renviron, or type a tab name below and press Reload."),
+                p("Recommended workflow: develop locally using the CSV, run the app and validate changes, then push to the repo. After the server pulls, upload the CSV to Google Drive, open it as a Google Sheet, and copy the full sheet into a new tab in the shared survey sheet that the server’s service account can access.")
               )
             ),
             if (P6M_ENABLED) checkboxInput("animated_bg", "Animated p6m waves", value = P6M_ANIMATED_DEFAULT),
-            textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
-            actionButton("reload_questionnaire", "Reload questionnaire"),
-            div(class = "muted", textOutput("load_status"))
+            div(
+              class = "intro-controls",
+              textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
+              actionButton("reload_questionnaire", "Reload questionnaire", class = "intro-reload"),
+              div(class = "intro-status", textOutput("load_status"))
+            )
           )
         ),
         div(
@@ -1181,7 +1263,12 @@ server <- function(input, output, session) {
           ),
           div(
             class = "consent-checkbox",
-            checkboxInput("consent", "I agree to take part.", value = FALSE, width = "100%")
+            tags$label(
+              class = "consent-pill",
+              tags$input(type = "checkbox", id = "consent", class = "shiny-input-checkbox"),
+              tags$span(class = "consent-indicator"),
+              tags$span("I agree to partake")
+            )
           ),
           div(class = "error-text", textOutput("navigation_error"))
         ),
@@ -1197,7 +1284,6 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          div(class = "prep-eyebrow", "Each experience is unique."),
           h3("Visualize your experience"),
           div(
             class = "prep-body",
@@ -1215,10 +1301,8 @@ server <- function(input, output, session) {
     }
     if (step == 4) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step1")),
           uiOutput("questionnaire_ui_page1"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -1232,10 +1316,8 @@ server <- function(input, output, session) {
 
     if (step == 5) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step2")),
           uiOutput("questionnaire_ui_page2"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -1249,10 +1331,8 @@ server <- function(input, output, session) {
 
     if (step == 6) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step3")),
           h3("Describe the context in which you had this experience."),
           uiOutput("questionnaire_ui_page3"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1267,10 +1347,8 @@ server <- function(input, output, session) {
 
     if (step == 7) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Perfect!"),
           div(
             class = "prep-body",
@@ -1287,10 +1365,8 @@ server <- function(input, output, session) {
 
     if (step == 8) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider1"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1305,10 +1381,8 @@ server <- function(input, output, session) {
 
     if (step == 9) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider2"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1323,10 +1397,8 @@ server <- function(input, output, session) {
 
     if (step == 10) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider3"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1341,10 +1413,8 @@ server <- function(input, output, session) {
 
     if (step == 11) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider4"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1359,10 +1429,8 @@ server <- function(input, output, session) {
 
     if (step == 12) {
       return(tagList(
-        uiOutput("progress_steps"),
         div(
           class = "app-card",
-          div(class = "prep-eyebrow experience-header", textOutput("experience_header_step4")),
           h3("Freely describe your experience in your own words"),
           uiOutput("questionnaire_ui_free"),
           div(class = "error-text", textOutput("validation_error"))

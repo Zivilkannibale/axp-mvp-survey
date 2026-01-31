@@ -31,6 +31,10 @@ See `config/.env.example` for required variables. Secrets must be stored in the 
 - Versioning is tracked via `instrument_id`, `instrument_version`, `language`, and `definition_hash`.
 - Optional UI columns include `width`, `placeholder`, `slider_left_label`, `slider_right_label`, and `slider_ticks`.
 - The experience tracer uses additional optional columns (see below).
+- Recommended workflow:
+  - Develop locally with `docs/sample_questionnaire.csv` and run the app to validate changes.
+  - Push to the repo and have the server pull the latest code.
+  - Upload the CSV to Google Drive, open it as a Google Sheet, and copy its contents into a new tab in the shared survey sheet that the server service account can access.
 
 ### Collaborator setup
 
