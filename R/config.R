@@ -15,7 +15,8 @@ get_config <- function(required = TRUE) {
     "OSF_TOKEN",
     "APP_BASE_URL",
     "P6M_ENABLED",
-    "P6M_ANIMATED"
+    "P6M_ANIMATED",
+    "DEV_MODE"
   )
 
   values <- lapply(names, function(nm) Sys.getenv(nm, unset = ""))
@@ -29,7 +30,8 @@ get_config <- function(required = TRUE) {
     "GOOGLE_SHEET_AUTH_EMAIL",
     "GOOGLE_SHEET_USE_OAUTH",
     "P6M_ENABLED",
-    "P6M_ANIMATED"
+    "P6M_ANIMATED",
+    "DEV_MODE"
   )
   missing <- setdiff(names[cfg == ""], optional)
   if (required && length(missing) > 0) {

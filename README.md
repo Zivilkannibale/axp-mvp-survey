@@ -14,6 +14,10 @@ shiny::runApp("app")
 
 The app uses `docs/sample_questionnaire.csv` if `GOOGLE_SHEET_CSV_URL` is not set or fails.
 
+## Development guide
+
+See `docs/DEVELOPMENT.md` for architecture, extension points, and workflow tips.
+
 ## Environment variables
 
 See `config/.env.example` for required variables. Secrets must be stored in the environment.
