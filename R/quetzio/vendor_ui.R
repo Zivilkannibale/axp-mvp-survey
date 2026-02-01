@@ -146,7 +146,7 @@ quetzio_generate_ui <- function(items) {
             tags$span(class = "slider-label-right", right_label)
           ),
           tags$script(HTML(sprintf(
-            "$(function(){ $('#%s').on('change input', function(){ Shiny.setInputValue('%s__touched', 1, {priority: 'event'}); }); });",
+            "$(function(){ $('#%s').on('change input', function(){ Shiny.setInputValue('%s__touched', 1, {priority: 'event'}); if (window.__axpUpdateSliderNextState) { window.__axpUpdateSliderNextState(); } }); });",
             input_id, input_id
           ))),
           tags$script(HTML(sprintf(

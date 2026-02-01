@@ -866,6 +866,13 @@ ui <- fluidPage(
             }
           } catch (e) {}
 
+          var anchorId = scrollAnchorToggle === 0 ? 'scroll-top-anchor-a' : 'scroll-top-anchor-b';
+          scrollAnchorToggle = 1 - scrollAnchorToggle;
+          var anchor = document.getElementById(anchorId);
+          if (anchor && anchor.scrollIntoView) {
+            anchor.scrollIntoView({ block: 'start', behavior: 'auto' });
+          }
+
           var target = document.scrollingElement || document.documentElement || document.body;
           if (target) target.scrollTop = 0;
           if (document.documentElement) document.documentElement.scrollTop = 0;
@@ -882,6 +889,13 @@ ui <- fluidPage(
               }
             }
           } catch (e) {}
+
+          if (location.hash !== '#' + anchorId) {
+            location.hash = anchorId;
+          }
+          if (history && history.replaceState) {
+            history.replaceState(null, '', location.pathname + location.search);
+          }
 
         }
 
@@ -923,12 +937,13 @@ ui <- fluidPage(
           }
           requestAnimationFrame(step);
         }
-        window.__axpScrollTop = scrollToTopSmooth;
+        window.__axpScrollTop = scrollToTopHard;
 
         function scheduleScrollTopHard() {
-          scrollToTopSmooth();
-          requestAnimationFrame(scrollToTopSmooth);
-          setTimeout(scrollToTopSmooth, 250);
+          scrollToTopHard();
+          requestAnimationFrame(scrollToTopHard);
+          setTimeout(scrollToTopHard, 50);
+          setTimeout(scrollToTopHard, 200);
         }
 
         function installPageObserver() {
@@ -936,13 +951,25 @@ ui <- fluidPage(
           var target = document.getElementById('page_ui');
           if (!target || !window.MutationObserver) return;
           var lastRun = 0;
-          pageUiObserver = new MutationObserver(function() {
+          pageUiObserver = new MutationObserver(function(mutations) {
             var now = Date.now();
             if (now - lastRun < 80) return;
             lastRun = now;
+            var shouldScroll = false;
+            for (var i = 0; i < mutations.length; i += 1) {
+              var mutation = mutations[i];
+              if (mutation.type !== 'childList') continue;
+              if ((mutation.addedNodes && mutation.addedNodes.length) || (mutation.removedNodes && mutation.removedNodes.length)) {
+                shouldScroll = true;
+                break;
+              }
+            }
+            if (shouldScroll) {
+              scheduleScrollTopHard();
+            }
             updateSliderNextState();
           });
-          pageUiObserver.observe(target, { childList: true, subtree: true });
+          pageUiObserver.observe(target, { childList: true, subtree: false });
         }
 
         function waitForPageObserver() {
@@ -1003,6 +1030,7 @@ ui <- fluidPage(
           nextBtn.disabled = !allTouched;
           nextBtn.classList.toggle('is-disabled', !allTouched);
         }
+        window.__axpUpdateSliderNextState = updateSliderNextState;
 
         function showBusy() {
           if (!busy) return;

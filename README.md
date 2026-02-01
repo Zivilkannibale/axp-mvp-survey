@@ -55,7 +55,7 @@ Pick one of the following:
 
 ## Slider input
 
-The questionnaire supports a custom `sliderInput` type. Required sliders must be touched; the UI sets a `__touched` flag when the slider moves. The UI generator is vendored in `R/quetzio/` (see `R/quetzio/NOTICE.txt`).
+The questionnaire supports a custom `sliderInput` type. Required sliders must be touched; the UI sets a `__touched` flag when the slider moves and uses it to enable the Next button on slider pages. If no default value is provided, sliders initialize at the midpoint. The UI generator is vendored in `R/quetzio/` (see `R/quetzio/NOTICE.txt`).
 
 ## Experience tracer input
 
