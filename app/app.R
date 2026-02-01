@@ -235,6 +235,10 @@ ui <- fluidPage(
       .irs--shiny:not(.is-ready) .irs-bar-edge,
       .irs--shiny:not(.is-ready) .irs-handle,
       .irs--shiny:not(.is-ready) .irs-slider { opacity: 0; }
+      .irs--shiny.is-untouched .irs-bar,
+      .irs--shiny.is-untouched .irs-bar-edge { opacity: 0.2; }
+      .irs--shiny.is-untouched .irs-handle,
+      .irs--shiny.is-untouched .irs-slider { border-color: rgba(107, 61, 240, 0.35) !important; }
       .irs--shiny .irs-line { height: 6px; top: 28px; background: var(--slider-track) !important; border: none; border-radius: 999px; }
       .irs--shiny .irs-bar { height: 6px; top: 28px; background: var(--slider-accent) !important; border: none; border-radius: 999px; }
       .irs--shiny .irs-bar-edge { height: 6px; top: 28px; background: var(--slider-accent) !important; border: none; border-radius: 999px; }
@@ -255,6 +259,12 @@ ui <- fluidPage(
         letter-spacing: 0.08em;
       }
       .nav-actions .btn:hover { background: var(--accent-soft); }
+      #next_step:disabled,
+      #next_step.is-disabled {
+        opacity: 0.45;
+        pointer-events: none;
+        background: #fff;
+      }
       .progress-steps {
         display: grid;
         grid-auto-flow: column;
@@ -781,6 +791,12 @@ ui <- fluidPage(
         max-height: 1600px;
         opacity: 1;
       }
+      .feedback-note {
+        margin: 6px 0 12px;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
       .feedback-panel.is-hidden {
         max-height: 0;
         opacity: 0;
@@ -924,9 +940,7 @@ ui <- fluidPage(
             var now = Date.now();
             if (now - lastRun < 80) return;
             lastRun = now;
-            if (appShell) appShell.classList.add('is-transitioning');
-            scheduleScrollTopHard();
-            clearTransitionAfter(0);
+            updateSliderNextState();
           });
           pageUiObserver.observe(target, { childList: true, subtree: true });
         }
@@ -974,6 +988,22 @@ ui <- fluidPage(
           requestAnimationFrame(step);
         }
 
+        function updateSliderNextState() {
+          var card = document.querySelector('.slider-page[data-slider-ids]');
+          var nextBtn = document.getElementById('next_step');
+          if (!card || !nextBtn) return;
+          var ids = card.getAttribute('data-slider-ids') || '';
+          var list = ids.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+          if (!list.length) return;
+          var values = (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.$inputValues) ? Shiny.shinyapp.$inputValues : {};
+          var allTouched = list.every(function(id) {
+            var val = values[id + '__touched'];
+            return val === 1 || val === '1';
+          });
+          nextBtn.disabled = !allTouched;
+          nextBtn.classList.toggle('is-disabled', !allTouched);
+        }
+
         function showBusy() {
           if (!busy) return;
           if (!bootHidden) return;
@@ -1012,6 +1042,7 @@ ui <- fluidPage(
           if (boot) boot.classList.remove('hidden');
           if (busy) busy.classList.add('hidden');
           installRewardSpriteAnimator();
+          updateSliderNextState();
 
           // Failsafe in case Shiny events don't fire
           bootTimeout = setTimeout(function() {
@@ -1026,6 +1057,11 @@ ui <- fluidPage(
           setBootProgress(55);
           waitForPageObserver();
           installRewardSpriteAnimator();
+          updateSliderNextState();
+        });
+
+        document.addEventListener('shiny:inputchanged', function() {
+          updateSliderNextState();
         });
 
         document.addEventListener('shiny:busy', function() {
@@ -1179,6 +1215,7 @@ ui <- fluidPage(
             if (navButton) {
               if (appShell) appShell.classList.add('is-transitioning');
               if (busy && bootHidden) busy.classList.remove('hidden');
+              scheduleScrollTopHard();
               waitForSliders(function() {
                 setTimeout(function() {
                   if (appShell) appShell.classList.remove('is-transitioning');
@@ -1200,11 +1237,19 @@ ui <- fluidPage(
     })),
     if (!P6M_ENABLED) tags$style(HTML("
       body {
+        background-color: var(--bg);
+      }
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
         background-image: url('circe-bg.png');
         background-repeat: no-repeat;
         background-position: center;
         background-size: cover;
-        background-attachment: fixed;
+        z-index: 0;
+        pointer-events: none;
+        transform: translateZ(0);
       }
     "))
   ),
@@ -1401,6 +1446,15 @@ server <- function(input, output, session) {
     }, once = TRUE)
   }
 
+  slider_group_complete <- function(ids) {
+    ids <- ids[!is.na(ids) & ids != ""]
+    if (length(ids) == 0) return(TRUE)
+    all(vapply(ids, function(id) {
+      touched <- input[[paste0(id, "__touched")]]
+      isTRUE(touched == 1) || identical(touched, "1")
+    }, logical(1)))
+  }
+
   observeEvent(input$next_step, {
     step <- current_step()
     if (step == 1) {
@@ -1451,25 +1505,41 @@ server <- function(input, output, session) {
       current_step(8)
       show_transition_busy()
     } else if (step == 8) {
-      validation_error("")
-      navigation_error("")
-      current_step(9)
-      show_transition_busy()
+      if (!slider_group_complete(slider_group_ids1())) {
+        validation_error("Please move each slider before continuing.")
+      } else {
+        validation_error("")
+        navigation_error("")
+        current_step(9)
+        show_transition_busy()
+      }
     } else if (step == 9) {
-      validation_error("")
-      navigation_error("")
-      current_step(10)
-      show_transition_busy()
+      if (!slider_group_complete(slider_group_ids2())) {
+        validation_error("Please move each slider before continuing.")
+      } else {
+        validation_error("")
+        navigation_error("")
+        current_step(10)
+        show_transition_busy()
+      }
     } else if (step == 10) {
-      validation_error("")
-      navigation_error("")
-      current_step(11)
-      show_transition_busy()
+      if (!slider_group_complete(slider_group_ids3())) {
+        validation_error("Please move each slider before continuing.")
+      } else {
+        validation_error("")
+        navigation_error("")
+        current_step(11)
+        show_transition_busy()
+      }
     } else if (step == 11) {
-      validation_error("")
-      navigation_error("")
-      current_step(12)
-      show_transition_busy()
+      if (!slider_group_complete(slider_group_ids4())) {
+        validation_error("Please move each slider before continuing.")
+      } else {
+        validation_error("")
+        navigation_error("")
+        current_step(12)
+        show_transition_busy()
+      }
     } else if (step == 12) {
       validation_error("")
       navigation_error("")
@@ -1768,7 +1838,8 @@ server <- function(input, output, session) {
     if (step == 8) {
       return(tagList(
         div(
-          class = "app-card",
+          class = "app-card slider-page",
+          `data-slider-ids` = paste(slider_group_ids1(), collapse = ","),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider1"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1784,7 +1855,8 @@ server <- function(input, output, session) {
     if (step == 9) {
       return(tagList(
         div(
-          class = "app-card",
+          class = "app-card slider-page",
+          `data-slider-ids` = paste(slider_group_ids2(), collapse = ","),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider2"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1800,7 +1872,8 @@ server <- function(input, output, session) {
     if (step == 10) {
       return(tagList(
         div(
-          class = "app-card",
+          class = "app-card slider-page",
+          `data-slider-ids` = paste(slider_group_ids3(), collapse = ","),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider3"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1816,7 +1889,8 @@ server <- function(input, output, session) {
     if (step == 11) {
       return(tagList(
         div(
-          class = "app-card",
+          class = "app-card slider-page",
+          `data-slider-ids` = paste(slider_group_ids4(), collapse = ","),
           h3("Questions"),
           uiOutput("questionnaire_ui_slider4"),
           div(class = "error-text", textOutput("validation_error"))
@@ -1899,6 +1973,10 @@ questionnaire_ui_slider3 <- reactiveVal(NULL)
 questionnaire_ui_slider4 <- reactiveVal(NULL)
 questionnaire_ui_free <- reactiveVal(NULL)
 tracer_ui_cached <- reactiveVal(NULL)
+slider_group_ids1 <- reactiveVal(character(0))
+slider_group_ids2 <- reactiveVal(character(0))
+slider_group_ids3 <- reactiveVal(character(0))
+slider_group_ids4 <- reactiveVal(character(0))
 observeEvent(questionnaire_df(), {
   df <- questionnaire_df()
   df_questions <- df[df$type != "experience_tracer", ]
@@ -1941,6 +2019,10 @@ observeEvent(questionnaire_df(), {
   questionnaire_ui_slider3(questionnaire_ui_vendor(slider_groups[[3]]))
   questionnaire_ui_slider4(questionnaire_ui_vendor(slider_groups[[4]]))
   questionnaire_ui_free(questionnaire_ui_vendor(free_df))
+  slider_group_ids1(as.character(slider_groups[[1]]$item_id))
+  slider_group_ids2(as.character(slider_groups[[2]]$item_id))
+  slider_group_ids3(as.character(slider_groups[[3]]$item_id))
+  slider_group_ids4(as.character(slider_groups[[4]]$item_id))
   tracer_ui_cached(questionnaire_ui_vendor(df[df$type == "experience_tracer", ]))
 }, ignoreInit = FALSE)
 
@@ -2082,6 +2164,10 @@ output$tracer_ui <- renderUI({
         div(
           class = "app-card",
           h3("Feedback"),
+          div(
+            class = "feedback-note",
+            "Below is a preview of the feedback format. It currently uses mock data while we finalize data storage for real submissions."
+          ),
           div(id = "feedback_loading", class = "muted", "Preparing feedback..."),
           plotOutput("radar_plot", height = "540px", width = "100%"),
           verbatimTextOutput("submission_status")
@@ -2124,14 +2210,25 @@ output$tracer_ui <- renderUI({
     label_width <- if (is_phone) 16 else 20
     label_radius <- if (is_phone) 1.08 else 1.14
     label_size <- if (is_phone) base_size * 0.165 else base_size * 0.22
-    p <- plot_scores_radar(
-      scores,
-      peer_points_df = peer_points,
-      base_size = base_size,
-      label_size = label_size,
-      label_width = label_width,
-      label_radius = label_radius
-    )
+    safe_plot <- function(scores_df, peer_points_df) {
+      tryCatch(
+        plot_scores_radar(
+          scores_df,
+          peer_points_df = peer_points_df,
+          base_size = base_size,
+          label_size = label_size,
+          label_width = label_width,
+          label_radius = label_radius
+        ),
+        error = function(e) NULL
+      )
+    }
+    p <- safe_plot(scores, peer_points)
+    if (is.null(p)) {
+      scores <- mock_scores_df()
+      peer_points <- build_peer_points(scores$scale_id, "default")
+      p <- safe_plot(scores, peer_points)
+    }
     if (!is.null(p)) print(p)
   }, height = function() {
     width <- session$clientData$output_radar_plot_width
@@ -2172,14 +2269,7 @@ output$tracer_ui <- renderUI({
         touched <- input[[paste0(id, "__touched")]]
         if (is.null(touched) || touched != 1) missing <- c(missing, id)
       } else if (row$type == "experience_tracer") {
-        payload <- value
-        min_points <- if ("tracer_min_points" %in% names(row) && !is.na(row$tracer_min_points)) {
-          as.numeric(row$tracer_min_points)
-        } else {
-          10
-        }
-        pts <- tracer_points_df(payload)
-        if (nrow(pts) < min_points) missing <- c(missing, id)
+        next
       } else if (is.null(value) || value == "") {
         missing <- c(missing, id)
       }

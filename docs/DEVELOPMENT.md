@@ -163,6 +163,8 @@ If you change scale ids or add scales:
 2) Adjust scoring map if needed.
 3) Update plot expectations (labels/ordering).
 
+Note: until `docs/scales.csv` maps all items to the 11 canonical labels, the radar plot intentionally falls back to mock data to avoid rendering errors.
+
 ## Assets and styling
 
 Static assets:

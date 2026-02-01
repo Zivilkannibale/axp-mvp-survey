@@ -132,6 +132,7 @@ Dependencies used:
 ## Notes
 
 - The progress-step "reward" indicator uses a flipbook sprite sheet (`app/www/circleshepherd4.png`) to animate through an 11x11 grid; the frame index advances in JS at a fixed FPS, with the active state tinted purple and a center dot.
+- The radar plot will fall back to mock data if computed scores do not map to all 11 canonical scale labels. This is intentional for now while the full scale mapping is incomplete.
 - Slider inputs use a readiness gate to avoid initial layout shifts; the UI keeps handles hidden until ionRangeSlider is fully initialized.
 - Free-text responses are stored only in the raw database and excluded from public exports by default.
 - IP addresses are not collected or stored.
