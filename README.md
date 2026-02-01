@@ -131,6 +131,8 @@ Dependencies used:
 
 ## Notes
 
+- The progress-step "reward" indicator uses a flipbook sprite sheet (`app/www/circleshepherd4.png`) to animate through an 11x11 grid; the frame index advances in JS at a fixed FPS, with the active state tinted purple and a center dot.
+- Slider inputs use a readiness gate to avoid initial layout shifts; the UI keeps handles hidden until ionRangeSlider is fully initialized.
 - Free-text responses are stored only in the raw database and excluded from public exports by default.
 - IP addresses are not collected or stored.
 - Do not commit `.env` files or tokens.

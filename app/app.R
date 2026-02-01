@@ -138,7 +138,7 @@ ui <- fluidPage(
       .app-shell #radar_plot,
       .app-shell .app-card,
       .app-shell .nav-actions {
-        transition: opacity 210ms ease;
+        transition: opacity 450ms ease;
       }
       .app-shell.is-booting .irs,
       .app-shell.is-booting .slider-labels,
@@ -226,8 +226,15 @@ ui <- fluidPage(
       #submit:hover { background: var(--accent-soft); }
       .slider-labels { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
       .shiny-input-container { width: 100%; max-width: 100%; }
+      .quetzio-question.type-sliderInput .shiny-input-container { min-height: 56px; }
+      .quetzio-question.type-sliderInput input[type='range'] { height: 56px; opacity: 0; }
       .irs { width: 100%; margin: 0; }
-      .irs--shiny { height: 56px; }
+      .irs--shiny { height: 56px; opacity: 0; transition: opacity 325ms ease; }
+      .irs--shiny.is-ready { opacity: 1; }
+      .irs--shiny:not(.is-ready) .irs-bar,
+      .irs--shiny:not(.is-ready) .irs-bar-edge,
+      .irs--shiny:not(.is-ready) .irs-handle,
+      .irs--shiny:not(.is-ready) .irs-slider { opacity: 0; }
       .irs--shiny .irs-line { height: 6px; top: 28px; background: var(--slider-track) !important; border: none; border-radius: 999px; }
       .irs--shiny .irs-bar { height: 6px; top: 28px; background: var(--slider-accent) !important; border: none; border-radius: 999px; }
       .irs--shiny .irs-bar-edge { height: 6px; top: 28px; background: var(--slider-accent) !important; border: none; border-radius: 999px; }
@@ -254,6 +261,7 @@ ui <- fluidPage(
         grid-auto-columns: 1fr;
         gap: 8px;
         margin: 4px 0 14px;
+        align-items: center;
       }
       .progress-step {
         width: 100%;
@@ -267,6 +275,55 @@ ui <- fluidPage(
         padding: 0;
         appearance: none;
       }
+      .progress-step.is-reward {
+        --frame: 24px;
+        --frames: 11;
+        width: var(--frame);
+        height: var(--frame);
+        justify-self: center;
+        border-radius: 0;
+        background-color: transparent;
+        background-image: url('circleshepherd4.png');
+        background-size: calc(var(--frame) * var(--frames)) calc(var(--frame) * var(--frames));
+        background-repeat: no-repeat;
+        background-position: var(--frame-x, 0px) var(--frame-y, 0px);
+        mask-image: none;
+        -webkit-mask-image: none;
+      }
+      @supports ((-webkit-mask-image: url(\"\")) or (mask-image: url(\"\"))) {
+        .progress-step.is-reward {
+          background-color: rgba(235, 242, 255, 0.85);
+          background-image: none;
+          mask-image: url('circleshepherd4.png');
+          -webkit-mask-image: url('circleshepherd4.png');
+          mask-size: calc(var(--frame) * var(--frames)) calc(var(--frame) * var(--frames));
+          -webkit-mask-size: calc(var(--frame) * var(--frames)) calc(var(--frame) * var(--frames));
+          mask-repeat: no-repeat;
+          -webkit-mask-repeat: no-repeat;
+          mask-position: var(--frame-x, 0px) var(--frame-y, 0px);
+          -webkit-mask-position: var(--frame-x, 0px) var(--frame-y, 0px);
+        }
+      }
+      .progress-step.is-reward::after {
+        content: '';
+        position: absolute;
+        inset: 50%;
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(107, 61, 240, 0.0);
+        transform: translate(-50%, -50%);
+      }
+      .progress-step.is-reward.is-active,
+      .progress-step.is-reward.is-complete {
+        background-color: transparent;
+      }
+      @supports ((-webkit-mask-image: url(\"\")) or (mask-image: url(\"\"))) {
+        .progress-step.is-reward.is-active,
+        .progress-step.is-reward.is-complete {
+          background-color: rgba(107, 61, 240, 0.9);
+        }
+      }
       .progress-step.is-clickable { cursor: pointer; }
       .progress-step.is-active::after,
       .progress-step.is-complete::after {
@@ -274,6 +331,17 @@ ui <- fluidPage(
         position: absolute;
         inset: 0;
         background: var(--accent);
+      }
+      .progress-step.is-reward.is-active::after,
+      .progress-step.is-reward.is-complete::after {
+        content: '';
+        position: absolute;
+        inset: 50%;
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(107, 61, 240, 0.95);
+        transform: translate(-50%, -50%);
       }
       .intro-panel {
         display: grid;
@@ -427,6 +495,28 @@ ui <- fluidPage(
         text-transform: none;
         z-index: 3;
         text-align: center;
+      }
+      .reward-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f3f0ff 55%, #eaf2ff 100%);
+        border: 1px solid rgba(107, 61, 240, 0.22);
+        box-shadow: 0 10px 26px rgba(55, 30, 130, 0.12);
+      }
+      .reward-eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: rgba(107, 61, 240, 0.7);
+        margin-bottom: 10px;
+      }
+      .reward-title {
+        font-size: 22px;
+        margin: 0 0 10px;
+        color: #241b43;
+      }
+      .reward-body {
+        color: #4b4863;
+        font-size: 15px;
       }
       .intro-controls {
         display: flex;
@@ -760,13 +850,6 @@ ui <- fluidPage(
             }
           } catch (e) {}
 
-          var anchorId = scrollAnchorToggle === 0 ? 'scroll-top-anchor-a' : 'scroll-top-anchor-b';
-          scrollAnchorToggle = 1 - scrollAnchorToggle;
-          var anchor = document.getElementById(anchorId);
-          if (anchor && anchor.scrollIntoView) {
-            anchor.scrollIntoView({ block: 'start', behavior: 'auto' });
-          }
-
           var target = document.scrollingElement || document.documentElement || document.body;
           if (target) target.scrollTop = 0;
           if (document.documentElement) document.documentElement.scrollTop = 0;
@@ -784,20 +867,52 @@ ui <- fluidPage(
             }
           } catch (e) {}
 
-          if (location.hash !== '#' + anchorId) {
-            location.hash = anchorId;
-          }
-          if (history && history.replaceState) {
-            history.replaceState(null, '', location.pathname + location.search);
-          }
         }
-        window.__axpScrollTop = scrollToTopHard;
+
+        function scrollToTopSmooth() {
+          try {
+            if (document.activeElement && typeof document.activeElement.blur === 'function') {
+              document.activeElement.blur();
+            }
+          } catch (e) {}
+
+          var start = null;
+          var duration = 820;
+          var startY = (document.scrollingElement || document.documentElement || document.body).scrollTop || 0;
+          if (startY <= 0) return;
+          function easeInOut(t) {
+            return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          }
+          function step(ts) {
+            if (!start) start = ts;
+            var progress = Math.min(1, (ts - start) / duration);
+            var eased = easeInOut(progress);
+            var nextY = Math.round(startY * (1 - eased));
+            try {
+              if (document.scrollingElement) {
+                document.scrollingElement.scrollTop = nextY;
+              } else if (document.documentElement) {
+                document.documentElement.scrollTop = nextY;
+              } else if (document.body) {
+                document.body.scrollTop = nextY;
+              }
+              window.scrollTo(0, nextY);
+              if (window.parent && window.parent !== window) {
+                window.parent.scrollTo(0, nextY);
+              }
+            } catch (e) {}
+            if (progress < 1) {
+              requestAnimationFrame(step);
+            }
+          }
+          requestAnimationFrame(step);
+        }
+        window.__axpScrollTop = scrollToTopSmooth;
 
         function scheduleScrollTopHard() {
-          scrollToTopHard();
-          requestAnimationFrame(scrollToTopHard);
-          setTimeout(scrollToTopHard, 50);
-          setTimeout(scrollToTopHard, 200);
+          scrollToTopSmooth();
+          requestAnimationFrame(scrollToTopSmooth);
+          setTimeout(scrollToTopSmooth, 250);
         }
 
         function installPageObserver() {
@@ -809,7 +924,9 @@ ui <- fluidPage(
             var now = Date.now();
             if (now - lastRun < 80) return;
             lastRun = now;
+            if (appShell) appShell.classList.add('is-transitioning');
             scheduleScrollTopHard();
+            clearTransitionAfter(0);
           });
           pageUiObserver.observe(target, { childList: true, subtree: true });
         }
@@ -823,6 +940,38 @@ ui <- fluidPage(
             if (tries < 60) setTimeout(check, 100);
           }
           check();
+        }
+
+        function installRewardSpriteAnimator() {
+          if (window.__rewardSpriteAnimator) return;
+          var tiles = 11;
+          var totalFrames = tiles * tiles;
+          var lastStamp = null;
+          var frameFloat = 0;
+          function step(ts) {
+            if (!lastStamp) lastStamp = ts;
+            var dt = (ts - lastStamp) / 1000;
+            lastStamp = ts;
+            var target = document.querySelector('.progress-step.is-reward');
+            if (target) {
+              var isActive = target.classList.contains('is-active') || target.classList.contains('is-complete');
+              var fps = 60;
+              frameFloat += dt * fps;
+              var frameIndex = Math.floor(frameFloat) % totalFrames;
+              var col = frameIndex % tiles;
+              var row = Math.floor(frameIndex / tiles);
+              var frameSize = parseFloat(getComputedStyle(target).getPropertyValue('--frame')) || 24;
+              var x = (-col * frameSize) + 'px';
+              var y = (-row * frameSize) + 'px';
+              target.style.setProperty('--frame-x', x);
+              target.style.setProperty('--frame-y', y);
+            } else {
+              lastStamp = ts;
+            }
+            requestAnimationFrame(step);
+          }
+          window.__rewardSpriteAnimator = true;
+          requestAnimationFrame(step);
         }
 
         function showBusy() {
@@ -862,6 +1011,7 @@ ui <- fluidPage(
 
           if (boot) boot.classList.remove('hidden');
           if (busy) busy.classList.add('hidden');
+          installRewardSpriteAnimator();
 
           // Failsafe in case Shiny events don't fire
           bootTimeout = setTimeout(function() {
@@ -875,6 +1025,7 @@ ui <- fluidPage(
         document.addEventListener('shiny:connected', function() {
           setBootProgress(55);
           waitForPageObserver();
+          installRewardSpriteAnimator();
         });
 
         document.addEventListener('shiny:busy', function() {
@@ -928,15 +1079,51 @@ ui <- fluidPage(
             check();
           }
 
+          function waitForSliders(cb) {
+            var tries = 0;
+            function check() {
+              tries += 1;
+              var sliders = document.querySelectorAll('.irs--shiny');
+              if (!sliders.length) return cb();
+              var allReady = true;
+              sliders.forEach(function(node) {
+                if (!node.classList.contains('is-ready')) allReady = false;
+              });
+              if (allReady || tries >= 60) {
+                cb();
+              } else {
+                requestAnimationFrame(check);
+              }
+            }
+            check();
+          }
+
+          function clearTransitionAfter(delayMs) {
+            var delay = typeof delayMs === 'number' ? delayMs : 0;
+            waitForSliders(function() {
+              if (!appShell) return;
+              if (delay > 0) {
+                setTimeout(function() {
+                  appShell.classList.remove('is-transitioning');
+                }, delay);
+              } else {
+                appShell.classList.remove('is-transitioning');
+              }
+            });
+          }
+
           Shiny.addCustomMessageHandler('bootReady', function() {
             if (bootTimeout) clearTimeout(bootTimeout);
             waitForUIAndFonts(function() {
-              setBootProgress(100);
-              if (appShell) {
-                setTimeout(function() {
-                  appShell.classList.remove('is-booting');
-                }, 120);
-              }
+              waitForSliders(function() {
+                installRewardSpriteAnimator();
+                setBootProgress(100);
+                if (appShell) {
+                  setTimeout(function() {
+                    appShell.classList.remove('is-booting');
+                  }, 120);
+                }
+              });
             });
           });
           Shiny.addCustomMessageHandler('bootProgress', function(msg) {
@@ -948,20 +1135,14 @@ ui <- fluidPage(
           });
           Shiny.addCustomMessageHandler('busyHide', function() {
             if (busy) busy.classList.add('hidden');
-            if (appShell) {
-              setTimeout(function() {
-                appShell.classList.remove('is-transitioning');
-              }, 210);
-            }
+            if (appShell) clearTransitionAfter(525);
           });
           Shiny.addCustomMessageHandler('pulseTransition', function() {
             if (!appShell) return;
             appShell.classList.remove('is-transitioning');
             void appShell.offsetWidth;
             appShell.classList.add('is-transitioning');
-            setTimeout(function() {
-              appShell.classList.remove('is-transitioning');
-            }, 210);
+            clearTransitionAfter(525);
           });
           Shiny.addCustomMessageHandler('pulseHeaders', function() {
             var headers = document.querySelectorAll('.experience-header');
@@ -998,10 +1179,12 @@ ui <- fluidPage(
             if (navButton) {
               if (appShell) appShell.classList.add('is-transitioning');
               if (busy && bootHidden) busy.classList.remove('hidden');
-              setTimeout(function() {
-                if (appShell) appShell.classList.remove('is-transitioning');
-                if (busy) busy.classList.add('hidden');
-              }, 420);
+              waitForSliders(function() {
+                setTimeout(function() {
+                  if (appShell) appShell.classList.remove('is-transitioning');
+                  if (busy) busy.classList.add('hidden');
+                }, 750);
+              });
             }
           }, true);
 
@@ -1155,7 +1338,7 @@ server <- function(input, output, session) {
   navigation_error <- reactiveVal("")
   validation_error <- reactiveVal("")
   progress_start_step <- 1
-  progress_end_step <- 13
+  progress_end_step <- 15
 
   observeEvent(input$reload_questionnaire, {
     sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
@@ -1165,7 +1348,7 @@ server <- function(input, output, session) {
   output$load_status <- renderText(load_status())
   output$showExperienceHeader <- renderText({
     step <- current_step()
-    step >= progress_start_step && step <= progress_end_step
+    step >= progress_start_step && step <= (progress_end_step - 1)
   })
   outputOptions(output, "showExperienceHeader", suspendWhenHidden = FALSE)
   output$progress_steps <- renderUI({
@@ -1182,6 +1365,9 @@ server <- function(input, output, session) {
         "progress-step is-active"
       } else {
         "progress-step"
+      }
+      if (i == total) {
+        cls <- paste(cls, "is-reward")
       }
       if (DEV_MODE) {
         jump_step <- progress_start_step + i - 1
@@ -1293,6 +1479,11 @@ server <- function(input, output, session) {
       validation_error("")
       navigation_error("")
       current_step(14)
+      show_transition_busy()
+    } else if (step == 14) {
+      validation_error("")
+      navigation_error("")
+      current_step(15)
       show_transition_busy()
     }
   })
@@ -1672,6 +1863,27 @@ server <- function(input, output, session) {
     }
 
     if (step == 14) {
+      return(tagList(
+        div(
+          class = "app-card reward-card",
+          div(class = "reward-eyebrow", "Final reveal"),
+          h3(class = "reward-title", "Your feedback is ready"),
+          div(
+            class = "reward-body",
+            p("We are about to generate a personalized snapshot of your experience and compare it with others."),
+            p("This is the reward for your contribution. Ready to see how you map onto the spectrum?")
+          )
+        ),
+        div(class = "error-text", textOutput("validation_error")),
+        div(
+          class = "nav-actions",
+          actionButton("prev_step", "Back"),
+          actionButton("submit", "Reveal my feedback")
+        )
+      ))
+    }
+
+    if (step == 15) {
       return(NULL)
     }
   })
@@ -1855,8 +2067,8 @@ output$tracer_ui <- renderUI({
 
   output$feedback_panel <- renderUI({
     step <- current_step()
-    hidden <- step != 14
-    nav_actions <- if (step == 14) {
+    hidden <- step != 15
+    nav_actions <- if (step == 15) {
       div(
         class = "nav-actions",
         actionButton("prev_step", "Back")
@@ -2064,7 +2276,7 @@ output$tracer_ui <- renderUI({
     }
 
     latest_scores(scores_df)
-    current_step(14)
+    current_step(15)
     show_transition_busy()
   })
 }
