@@ -67,7 +67,8 @@ Browser (Shiny client)
 11. Slider group 4
 12. Free-text page
 13. Experience tracer
-14. Results/feedback
+14. Reward (final reveal)
+15. Results/feedback
 
 ## Questionnaire schema and rendering
 
@@ -92,7 +93,14 @@ The server validates required items on submit:
 1) Update `output$page_ui` with a new step block.
 2) Update the `observeEvent(input$next_step)` logic to advance.
 3) Update `progress_end_step` if the progress bar range changes.
-4) Update the feedback step if needed (step 14 currently).
+4) Update the feedback step if needed (step 15 currently).
+
+### Reward progress indicator
+
+- The final progress step renders as a flipbook sprite indicator.
+- Sprite sheet: `app/www/circleshepherd4.png` (11x11 grid).
+- The animation runs via a small JS loop in `app/app.R` that advances a frame index at 60 fps and updates `--frame-x` / `--frame-y`.
+- Active/complete state tints the sprite purple and adds a center dot.
 
 ## Scroll-to-top behavior
 
