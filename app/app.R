@@ -21,6 +21,21 @@ suppressPackageStartupMessages({
   library(shiny)
 })
 
+options(shiny.useragg = TRUE)
+
+if (requireNamespace("systemfonts", quietly = TRUE)) {
+  try({
+    nunito_variable <- file.path(root_dir, "app", "www", "fonts", "Nunito-VariableFont_wght.ttf")
+    press_start <- file.path(root_dir, "app", "www", "fonts", "PressStart2P-Regular.ttf")
+    if (file.exists(nunito_variable)) {
+      systemfonts::register_font("Nunito", regular = nunito_variable, bold = nunito_variable)
+    }
+    if (file.exists(press_start)) {
+      systemfonts::register_font("Press Start 2P", regular = press_start)
+    }
+  }, silent = TRUE)
+}
+
 load_questionnaire <- function(sheet_name_override = NULL) {
   cfg <- get_config(required = FALSE)
   df <- NULL
@@ -63,12 +78,8 @@ DEV_MODE <- env_flag(cfg_ui$DEV_MODE, FALSE)
 
 ui <- fluidPage(
   tags$head(
-    tags$link(rel = "preconnect", href = "https://fonts.googleapis.com"),
-    tags$link(rel = "preconnect", href = "https://fonts.gstatic.com", crossorigin = "anonymous"),
-    tags$link(
-      rel = "stylesheet",
-      href = "https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Press+Start+2P&display=swap"
-    ),
+    tags$link(rel = "preload", href = "fonts/PressStart2P-Regular.ttf", as = "font", type = "font/ttf"),
+    tags$link(rel = "preload", href = "fonts/Nunito-VariableFont_wght.ttf", as = "font", type = "font/ttf"),
     tags$link(rel = "preload", href = "circe-logo.png", as = "image"),
     if (!P6M_ENABLED) tags$link(rel = "preload", href = "circe-bg.png", as = "image"),
     if (P6M_ENABLED) tags$link(rel = "preload", href = "p6m-bg.js", as = "script"),
@@ -110,6 +121,20 @@ ui <- fluidPage(
       });
     ")),
     tags$style(HTML("
+      @font-face {
+        font-family: 'Press Start 2P';
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+        src: url('fonts/PressStart2P-Regular.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Nunito';
+        font-style: normal;
+        font-weight: 200 1000;
+        font-display: swap;
+        src: url('fonts/Nunito-VariableFont_wght.ttf') format('truetype');
+      }
       :root {
         --accent: #6b3df0;
         --accent-soft: #f0ecff;
@@ -2262,7 +2287,7 @@ output$tracer_ui <- renderUI({
       return(540)
     }
     max(360, min(540, width * 0.85))
-  }, res = 120, antialias = "default")
+  }, res = 200)
 
   outputOptions(output, "radar_plot", suspendWhenHidden = FALSE)
   outputOptions(output, "questionnaire_ui_page1", suspendWhenHidden = FALSE)
@@ -2398,11 +2423,3 @@ output$tracer_ui <- renderUI({
 }
 
 shinyApp(ui, server)
-
-
-
-
-
-
-
-

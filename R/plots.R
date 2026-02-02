@@ -7,7 +7,8 @@ plot_scores_radar <- function(scores_df,
                               label_radius = 1.14,
                               jitter_max = 0.03,
                               base_size = 10,
-                              label_size = NULL) {
+                              label_size = NULL,
+                              font_family = "Nunito") {
   if (is.null(scores_df) || nrow(scores_df) == 0) return(NULL)
 
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
@@ -64,6 +65,27 @@ plot_scores_radar <- function(scores_df,
 
   clamp01 <- function(x) pmax(0, pmin(1, x))
   scale_to_unit <- function(x) clamp01((x - min_val) / (max_val - min_val))
+  resolve_font_family <- function(family) {
+    if (!is.character(family) || length(family) == 0 || family == "") {
+      return("")
+    }
+    if (requireNamespace("systemfonts", quietly = TRUE)) {
+      info <- try({
+        if (utils::packageVersion("systemfonts") >= "1.1.0") {
+          systemfonts::match_fonts(family)
+        } else {
+          systemfonts::match_font(family)
+        }
+      }, silent = TRUE)
+      if (!inherits(info, "try-error")) {
+        path <- if (is.data.frame(info)) info$path[[1]] else info$path
+        if (!is.na(path) && nzchar(path)) {
+          return(family)
+        }
+      }
+    }
+    "Segoe UI"
+  }
 
   n_scales <- length(canonical_labels)
   angle_seq <- seq(0, 2 * pi, length.out = n_scales + 1)[-(n_scales + 1)]
@@ -155,6 +177,7 @@ plot_scores_radar <- function(scores_df,
 
   grid_color <- "#d0d6e4"
   text_color <- "#3f4250"
+  label_color <- "#000000"
   purple <- "#6b3df0"
   grey <- "#7b7f8c"
 
@@ -163,6 +186,7 @@ plot_scores_radar <- function(scores_df,
     label_size <- base_size * 0.33
   }
 
+  font_family <- resolve_font_family(font_family)
   p <- ggplot2::ggplot() +
     ggplot2::geom_path(
       data = ring_df,
@@ -213,9 +237,10 @@ plot_scores_radar <- function(scores_df,
     ggplot2::geom_text(
       data = label_df,
       ggplot2::aes(x = x, y = y, label = label, hjust = hjust, vjust = vjust),
-      color = text_color,
+      color = label_color,
       size = label_size,
-      fontface = "bold",
+      family = font_family,
+      fontface = "plain",
       lineheight = 0.95
     ) +
     ggplot2::scale_color_manual(
@@ -229,11 +254,11 @@ plot_scores_radar <- function(scores_df,
         override.aes = list(size = 3, alpha = c(1, 0.35))
       )
     ) +
-    ggplot2::theme_void() +
+    ggplot2::theme_void(base_family = font_family) +
     ggplot2::theme(
       legend.position = "bottom",
       legend.box = "horizontal",
-      legend.text = ggplot2::element_text(color = text_color, size = base_size),
+      legend.text = ggplot2::element_text(color = text_color, size = base_size, family = font_family),
       plot.margin = ggplot2::margin(10, 15, 30, 15)
     )
 
