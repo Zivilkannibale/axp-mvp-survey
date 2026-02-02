@@ -33,9 +33,12 @@ get_db_dialect <- function() {
 }
 
 #' Create database connection
-#' @param cfg Configuration list from get_config()
+#' @param cfg Configuration list from get_config(). If NULL, loads config automatically.
 #' @return DBI connection object
-db_connect <- function(cfg) {
+db_connect <- function(cfg = NULL) {
+  if (is.null(cfg)) {
+    cfg <- get_config(required = FALSE)
+  }
   dialect <- get_db_dialect()
   
 
