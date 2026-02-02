@@ -133,21 +133,43 @@ Common ones:
 - `GOOGLE_SHEET_SHEETNAME`
 - `GOOGLE_SHEET_AUTH_JSON`
 - `GOOGLE_SHEET_USE_OAUTH`
-- `STRATO_PG_*` (DB)
+- `DB_*` (MariaDB, primary)
+- `STRATO_PG_*` (PostgreSQL, legacy)
 - `P6M_ENABLED`, `P6M_ANIMATED`
 - `DEV_MODE`
+- `OSF_TOKEN`, `OSF_PROJECT_ID` (for public exports)
 
 ## Data persistence
 
-DB logic is in:
-- `R/db.R`
-- `sql/001_init.sql`
+The app supports MariaDB (primary, recommended) and PostgreSQL (legacy) for raw data storage.
 
-Tables:
-- `submissions`
-- `responses_numeric`
-- `responses_text`
-- `scores`
+### Key files:
+- `R/db.R` - Database connector (auto-detects dialect from `DB_DIALECT`)
+- `R/config.R` - Environment variable loading
+- `sql/001_init.sql` - PostgreSQL schema
+- `sql/001_init_mariadb.sql` - MariaDB schema (UTF8MB4, InnoDB)
+
+### Tables (MariaDB):
+- `submission` - One row per survey session (with versioning info)
+- `response_numeric` - Slider/rating values
+- `response_text` - Free-text responses (**never exported to public**)
+- `score` - Computed scale scores
+- `aggregate_norms` - Periodically computed norm statistics
+- `response_tracer` - Experience tracer raw data (JSON)
+
+### Configuration:
+```bash
+# In app/.Renviron on server:
+DB_DIALECT=mariadb
+DB_HOST=database-5019530911.webspace-host.com
+DB_PORT=3306
+DB_NAME=dbs15265782
+DB_USER=dbu4550099
+DB_PASSWORD=<secret>
+DB_TLS=1
+```
+
+For local development, omit `DB_*` vars entirely — the app skips DB writes.
 
 ## Scoring and feedback
 

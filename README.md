@@ -1,6 +1,6 @@
 # axp-mvp-survey
 
-MVP Shiny survey pipeline with Google Sheets questionnaire definitions, PostgreSQL persistence, scoring, norms, and export tooling.
+MVP Shiny survey pipeline with Google Sheets questionnaire definitions, MariaDB persistence, scoring, norms, and export tooling for OSF.
 
 ## Quick Start (Local Development)
 
@@ -96,11 +96,97 @@ Optional columns for tracer configuration (all optional):
 
 The local reference row lives in `docs/sample_questionnaire.csv`. You can copy its columns/values into the Google Sheet to update the schema.
 
-## Database and STRATO deploy notes
+## Production architecture (current)
 
-- Configure PostgreSQL credentials in the environment.
-- `sql/001_init.sql` creates required tables.
-- Deploy behind nginx with Shiny Server or ShinyProxy. Ensure HTTPS and set `APP_BASE_URL`.
+### Infrastructure overview (as of 2026-02-02)
+
+| Component | Technology | Details |
+|-----------|------------|--------|
+| Frontend | Shiny app | Deployed via Shiny Server on Ubuntu 20.04.6 LTS |
+| Raw data storage | Strato managed MariaDB 10.11 | TLS required; no IP whitelist |
+| Public data | OSF | Cleaned CSVs uploaded on schedule |
+| Questionnaire source | Google Sheets (build-time) | Multi-collaborator editing; CSV fallback |
+
+### Data lifecycle
+
+```
+┌─────────────────┐     ┌────────────────┐     ┌──────────────────┐
+│   Shiny UI      │────►│  Validate +    │────►│  MariaDB (raw)   │
+│  (participant)  │     │  sanitize      │     │  - sessions      │
+└─────────────────┘     └────────────────┘     │  - answers_raw   │
+                                                │  - free_text_raw │
+                                                └────────┬─────────┘
+                                                         │ periodic
+                                                         ▼ export job
+                                                ┌────────────────────┐
+                                                │  Clean / redact    │
+                                                │  - remove free text│
+                                                │  - anon session id │
+                                                └────────┬───────────┘
+                                                         │
+                                                         ▼
+                                                ┌────────────────────┐
+                                                │  Public CSV        │
+                                                │  (exports/)        │
+                                                └────────┬───────────┘
+                                                         │ osf_upload.R
+                                                         ▼
+                                                ┌────────────────────┐
+                                                │  OSF repository    │
+                                                │  (researchers)     │
+                                                └────────────────────┘
+```
+
+**Important:** Public CSVs must NOT contain raw free text or identifiable metadata. Free-text is stored only in MariaDB for potential manual review and is never exported.
+
+### Database configuration (MariaDB)
+
+Set the following environment variables (in `app/.Renviron` on server):
+
+```bash
+DB_DIALECT=mariadb
+DB_HOST=database-5019530911.webspace-host.com
+DB_PORT=3306
+DB_NAME=dbs15265782
+DB_USER=dbu4550099
+DB_PASSWORD=...        # NEVER commit
+DB_TLS=1               # Enable TLS (recommended)
+DB_TLS_VERIFY=1        # Verify server certificate (optional)
+DB_TLS_CA_PATH=        # Custom CA path (optional; use system CA if blank)
+```
+
+For local development without a database, simply omit `DB_*` variables — the app will skip DB writes.
+
+### Secrets management
+
+**Principle:** No secrets in git. Ever.
+
+All sensitive values are stored on the server in `app/.Renviron` (or `secret/` directory for JSON keys). This file is:
+- **Not tracked** in git (listed in `.gitignore`)
+- **Owned by `shiny`** user (or www-data depending on config)
+- **Permissions `600`** (read/write owner only)
+
+Required secrets for production:
+
+| Variable | Purpose | Location |
+|----------|---------|----------|
+| `DB_PASSWORD` | MariaDB password | `app/.Renviron` |
+| `OSF_TOKEN` | OSF API token for uploads | `app/.Renviron` |
+| `GOOGLE_SHEET_AUTH_JSON` | Path to Google service account JSON | `app/.Renviron` (points to `secret/*.json`) |
+
+**Never log secrets.** The codebase explicitly avoids printing `DB_PASSWORD` or `OSF_TOKEN` values.
+
+### Server facts (verified 2026-02-02 Europe/Berlin)
+
+| Property | Value |
+|----------|-------|
+| OS | Ubuntu 20.04.6 LTS (OpenVZ virtualization) |
+| Shiny Server | active (systemd); listens on port 3838 |
+| Config | `/etc/shiny-server/shiny-server.conf` → `site_dir /srv/shiny-server`, `run_as shiny` |
+| Repo path | `/srv/shiny-server/axp-mvp-survey` |
+| R version | 4.5.2 |
+| renv | 1.1.6 |
+| Reverse proxy | Traefik (Docker) on ports 80/443/8080 |
 
 ### Current server deployment (STRATO)
 
@@ -141,6 +227,66 @@ chmod 600 app/.Renviron secret/axp-mvp-3ec693c04c81.json 2>/dev/null || true
 systemctl restart shiny-server
 ```
 
+## Deploy steps (operator checklist)
+
+When deploying updates to the STRATO server:
+
+```bash
+# 1. SSH into the server
+ssh root@85.215.90.33
+
+# 2. Pull latest code
+cd /srv/shiny-server/axp-mvp-survey
+git fetch origin
+git pull --ff-only origin main
+
+# 3. Restore R dependencies (fix renv drift)
+sudo -u shiny R -e "renv::restore()"
+
+# 4. If systemfonts or uuid missing/outdated:
+sudo -u shiny R -e "renv::install('systemfonts')"
+sudo -u shiny R -e "renv::install('uuid')"
+
+# 5. Update app/.Renviron with DB_* vars (if not already)
+#    IMPORTANT: Add DB_PASSWORD here, owned by shiny, chmod 600
+cat >> /srv/shiny-server/axp-mvp-survey/app/.Renviron << 'EOF'
+DB_DIALECT=mariadb
+DB_HOST=database-5019530911.webspace-host.com
+DB_PORT=3306
+DB_NAME=dbs15265782
+DB_USER=dbu4550099
+DB_PASSWORD=YOUR_PASSWORD_HERE
+DB_TLS=1
+EOF
+chown shiny:shiny /srv/shiny-server/axp-mvp-survey/app/.Renviron
+chmod 600 /srv/shiny-server/axp-mvp-survey/app/.Renviron
+
+# 6. Initialize DB schema (one-time, or after migrations)
+sudo -u shiny R -e "source('scripts/init_db.R')"
+
+# 7. Restart Shiny Server
+systemctl restart shiny-server
+
+# 8. Verify
+systemctl status shiny-server
+curl -s http://localhost:3838/axp-mvp-survey/app/ | head -20
+```
+
+### renv drift (known issues on server)
+
+As of 2026-02-02, the server has:
+- **Missing:** `systemfonts`
+- **Out-of-sync:** `uuid` (lockfile vs library)
+
+Resolution:
+```r
+# In R console (as shiny user):
+renv::restore()
+renv::install("systemfonts")
+# If you want to update lockfile to match current library:
+# renv::snapshot()  # Only if intentional
+```
+
 ## Scoring and norms
 
 - Define scales in `docs/scales.csv`.
@@ -175,13 +321,27 @@ Dependencies used:
 - httr
 - jsonlite
 - DBI
-- RPostgres
-- digest
+- RMariaDB (primary database driver)
+- RPostgres (legacy, optional)
+- uuid (for session ID generation)
+- digest (for anonymization hashes)
 - readr
 - dplyr
 - tidyr
 - ggplot2
 - googlesheets4 (optional, for API-based questionnaire loading)
+
+### Adding RMariaDB to renv
+
+If RMariaDB is not yet in the lockfile:
+
+```r
+# Install the package
+renv::install("RMariaDB")
+
+# Update lockfile
+renv::snapshot()
+```
 
 ## Notes
 

@@ -130,7 +130,9 @@ See `config/.env.example` for the full list. For local dev, only optional vars:
 | `DEV_MODE` | Enable step jumping | No (default: false) |
 | `P6M_ENABLED` | Animated tiling background | No (default: false) |
 | `GOOGLE_SHEET_*` | Google Sheets integration | No (uses local CSV) |
-| `STRATO_PG_*` | Database persistence | No (skips DB writes) |
+| `DB_*` | MariaDB persistence (primary) | No (skips DB writes) |
+| `STRATO_PG_*` | PostgreSQL persistence (legacy) | No (use DB_* instead) |
+| `OSF_TOKEN`, `OSF_PROJECT_ID` | OSF export uploads | No (manual upload) |
 
 ## Common Issues
 

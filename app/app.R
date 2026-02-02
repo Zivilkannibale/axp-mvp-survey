@@ -2395,6 +2395,7 @@ output$tracer_ui <- renderUI({
       on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
       DBI::dbWithTransaction(conn, {
+        # Schema auto-detects MariaDB vs Postgres variant
         db_init_schema(conn, file.path(root_dir, "sql/001_init.sql"))
         submission_id <- db_insert_submission(
           conn,

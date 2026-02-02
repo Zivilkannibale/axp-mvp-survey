@@ -6,13 +6,26 @@ get_config <- function(required = TRUE) {
     "GOOGLE_SHEET_AUTH_JSON",
     "GOOGLE_SHEET_AUTH_EMAIL",
     "GOOGLE_SHEET_USE_OAUTH",
+    # New DB_* variables (MariaDB primary)
+    "DB_DIALECT",
+    "DB_HOST",
+    "DB_PORT",
+    "DB_NAME",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_TLS",
+    "DB_TLS_VERIFY",
+    "DB_TLS_CA_PATH",
+    # Legacy STRATO_PG_* variables (Postgres, backward compat)
     "STRATO_PG_HOST",
     "STRATO_PG_DB",
     "STRATO_PG_USER",
     "STRATO_PG_PASSWORD",
     "STRATO_PG_PORT",
+    # OSF export
     "OSF_PROJECT_ID",
     "OSF_TOKEN",
+    # App settings
     "APP_BASE_URL",
     "P6M_ENABLED",
     "P6M_ANIMATED",
@@ -29,6 +42,23 @@ get_config <- function(required = TRUE) {
     "GOOGLE_SHEET_AUTH_JSON",
     "GOOGLE_SHEET_AUTH_EMAIL",
     "GOOGLE_SHEET_USE_OAUTH",
+    # DB vars are optional (app works without DB)
+    "DB_DIALECT",
+    "DB_HOST",
+    "DB_PORT",
+    "DB_NAME",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_TLS",
+    "DB_TLS_VERIFY",
+    "DB_TLS_CA_PATH",
+    "STRATO_PG_HOST",
+    "STRATO_PG_DB",
+    "STRATO_PG_USER",
+    "STRATO_PG_PASSWORD",
+    "STRATO_PG_PORT",
+    "OSF_PROJECT_ID",
+    "OSF_TOKEN",
     "P6M_ENABLED",
     "P6M_ANIMATED",
     "DEV_MODE"
@@ -48,7 +78,17 @@ get_config <- function(required = TRUE) {
   cfg
 }
 
+#' Check if database config is available (supports both MariaDB and Postgres)
+#' @param cfg Configuration list from get_config()
+#' @return TRUE if sufficient DB config is present
 has_db_config <- function(cfg) {
-  required <- c("STRATO_PG_HOST", "STRATO_PG_DB", "STRATO_PG_USER", "STRATO_PG_PASSWORD", "STRATO_PG_PORT")
-  all(cfg[required] != "")
+  # Check new DB_* variables first (MariaDB)
+  new_vars <- c("DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD")
+  if (all(cfg[new_vars] != "")) {
+    return(TRUE)
+  }
+  
+  # Fall back to legacy STRATO_PG_* variables (Postgres)
+  legacy_vars <- c("STRATO_PG_HOST", "STRATO_PG_DB", "STRATO_PG_USER", "STRATO_PG_PASSWORD", "STRATO_PG_PORT")
+  all(cfg[legacy_vars] != "")
 }

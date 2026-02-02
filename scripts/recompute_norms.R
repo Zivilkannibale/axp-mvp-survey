@@ -1,4 +1,8 @@
 #!/usr/bin/env Rscript
+# -----------------------------------------------------------------------------
+# Recompute aggregate norms from all submissions
+# Run periodically to update norm statistics for radar plot comparisons
+# -----------------------------------------------------------------------------
 
 source("R/config.R")
 source("R/db.R")
@@ -8,15 +12,19 @@ suppressPackageStartupMessages({
   library(dplyr)
 })
 
-cfg <- get_config(required = TRUE)
+cfg <- get_config(required = FALSE)
 if (!has_db_config(cfg)) {
-  stop("Database configuration is incomplete.", call. = FALSE)
+  stop("Database configuration is incomplete. Set DB_* environment variables.", call. = FALSE)
 }
+
+dialect <- get_db_dialect()
+message("Connecting to ", dialect, " database...")
 
 conn <- db_connect(cfg)
 on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
-db_init_schema(conn)
+# Initialize schema if needed (idempotent)
+db_init_schema(conn, "sql/001_init.sql")
 
 scores <- DBI::dbGetQuery(conn, "SELECT submission_id, scale_id, score_value FROM score")
 submissions <- DBI::dbGetQuery(conn, "SELECT submission_id, instrument_version FROM submission")
@@ -41,13 +49,26 @@ norms <- scores %>%
     .groups = "drop"
   )
 
-for (i in seq_len(nrow(norms))) {
-  row <- norms[i, ]
-  DBI::dbExecute(
-    conn,
-    "DELETE FROM aggregate_norms WHERE instrument_version = $1 AND scale_id = $2",
-    params = list(row$instrument_version, row$scale_id)
-  )
+# Delete existing norms before inserting new ones
+# Use dialect-appropriate placeholder syntax
+if (dialect == "mariadb") {
+  for (i in seq_len(nrow(norms))) {
+    row <- norms[i, ]
+    DBI::dbExecute(
+      conn,
+      "DELETE FROM aggregate_norms WHERE instrument_version = ? AND scale_id = ?",
+      params = list(row$instrument_version, row$scale_id)
+    )
+  }
+} else {
+  for (i in seq_len(nrow(norms))) {
+    row <- norms[i, ]
+    DBI::dbExecute(
+      conn,
+      "DELETE FROM aggregate_norms WHERE instrument_version = $1 AND scale_id = $2",
+      params = list(row$instrument_version, row$scale_id)
+    )
+  }
 }
 
 DBI::dbWriteTable(conn, "aggregate_norms", norms, append = TRUE, row.names = FALSE)
