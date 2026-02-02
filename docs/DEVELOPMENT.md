@@ -176,6 +176,49 @@ Keep UI changes centralized:
 - Prefer updating styles in the inline CSS block.
 - Avoid sprinkling style tags in multiple files.
 
+### Custom cursor for sliders
+
+The slider questions use a custom cursor (a purple hand icon). The cursor is defined as an inline SVG data URL in `app/app.R`.
+
+**Reference SVG file:** `app/www/cursor-hand.svg`
+
+This file serves as documentation and a starting point if you want to customize the cursor. To use a different cursor:
+
+1. **Edit or replace the SVG file** at `app/www/cursor-hand.svg`
+2. **Convert to a data URL** for use in CSS:
+   - Open the SVG in a text editor
+   - URL-encode special characters (or use an online tool like [yoksel's URL-encoder for SVG](https://yoksel.github.io/url-encoder/))
+   - Replace the data URL in `app/app.R` in the slider cursor CSS rule
+
+**SVG requirements for cursors:**
+- **Size:** 24×24 pixels recommended (max 128×128 in most browsers)
+- **Format:** Must be valid SVG
+- **Color:** Set via `fill` attribute. Use a hex color like `#6b3df0` for purple
+- **Hotspot:** The CSS cursor property accepts x/y coordinates after the URL: `url(...) 12 0, pointer`
+  - `12 0` means the hotspot is at x=12 (center), y=0 (top)
+  - Adjust based on where the "click point" should be on your cursor
+
+**Example CSS rule (in app/app.R):**
+```css
+.quetzio-question.type-sliderInput .shiny-input-container {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='...'...%3E%3C/svg%3E") 12 0, pointer;
+}
+```
+
+**Note on dynamic coloring:**
+- Browsers don't support CSS variables inside cursor data URLs
+- To change the cursor color, you must edit the SVG `fill` attribute and re-encode the data URL
+- The `fill="#6b3df0"` in the SVG sets the purple color matching `--accent`
+
+**Quick reference - URL encoding for SVG:**
+| Character | Encoded |
+|-----------|---------|
+| `<`       | `%3C`   |
+| `>`       | `%3E`   |
+| `#`       | `%23`   |
+| `"`       | `'` (use single quotes inside) |
+| space     | `%20`   |
+
 ## Common extension patterns
 
 ### Add a new questionnaire page

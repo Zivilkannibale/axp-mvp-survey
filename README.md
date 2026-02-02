@@ -2,25 +2,48 @@
 
 MVP Shiny survey pipeline with Google Sheets questionnaire definitions, PostgreSQL persistence, scoring, norms, and export tooling.
 
-## Quick start
+## Quick Start (Local Development)
 
-1) Install R and required packages.
-2) Copy `config/.env.example` to your environment (do not commit secrets).
-3) Run the app:
+No external services required for local testing:
 
+```bash
+# 1. Clone and enter the repo
+git clone <repo-url>
+cd axp-mvp-survey
+
+# 2. Restore R dependencies
+Rscript -e "renv::restore()"
+
+# 3. Run the app
+Rscript -e "shiny::runApp('app')"
+```
+
+The app automatically uses `docs/sample_questionnaire.csv` when Google Sheets isn't configured.
+
+**Optional:** Enable dev mode for step jumping:
 ```r
+Sys.setenv(DEV_MODE = "true")
 shiny::runApp("app")
 ```
 
-The app uses `docs/sample_questionnaire.csv` if `GOOGLE_SHEET_CSV_URL` is not set or fails.
+## For New Contributors
 
-## Development guide
+See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Project architecture overview
+- How to add new input types
+- Styling guidelines
+- Browser compatibility notes
 
-See `docs/DEVELOPMENT.md` for architecture, extension points, and workflow tips.
+## Development Guide
 
-## Environment variables
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for:
+- Detailed architecture diagram
+- Step-by-step extension patterns
+- Troubleshooting tips
 
-See `config/.env.example` for required variables. Secrets must be stored in the environment.
+## Environment Variables
+
+See `config/.env.example` for the full list. All are optional for local development.
 
 ## Questionnaire in Google Sheets
 

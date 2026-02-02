@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <!-- 
+    Custom cursor for slider interaction.
+    
+    To customize this cursor:
+    1. Edit this SVG file or replace it with your own
+    2. The app will automatically use current-color for dynamic coloring
+       OR you can set a fixed color using the 'fill' attribute
+    3. Keep dimensions at 24x24 for best results
+    4. The hotspot is at coordinates (12, 0) - the top-center
+    
+    Color options:
+    - Use fill="currentColor" to inherit color from CSS (requires additional CSS setup)
+    - Use a hex color like fill="#6b3df0" for a fixed purple color
+    - The app currently uses an inline data URL, so colors are set in app/app.R
+    
+    If you want the app to dynamically color the cursor:
+    - The SVG must use fill="currentColor" or have no fill (inherits)
+    - Currently, browsers don't fully support CSS variables in cursor URLs
+    - The workaround is to encode the SVG with the desired color inline in CSS
+  -->
+  <path fill="#6b3df0" d="M10 2V9.5H9V3C9 2.45 8.55 2 8 2S7 2.45 7 3V14.35L4.5 11.53C4.06 11.04 3.32 10.97 2.79 11.35C2.21 11.77 2.07 12.58 2.47 13.17L5.73 17.96C6.85 19.86 8.9 21 11.11 21H13C16.31 21 19 18.31 19 15V6C19 5.45 18.55 5 18 5S17 5.45 17 6V9.5H16V4C16 3.45 15.55 3 15 3S14 3.45 14 4V9.5H13V3C13 2.45 12.55 2 12 2S11 2.45 11 3V9.5H10V2Z"/>
+</svg>
