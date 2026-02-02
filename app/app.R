@@ -2260,7 +2260,7 @@ output$tracer_ui <- renderUI({
     is_phone <- width < 420
     label_width <- if (is_phone) 16 else 20
     label_radius <- if (is_phone) 1.08 else 1.14
-    label_size <- if (is_phone) base_size * 0.165 else base_size * 0.22
+    label_size <- if (is_phone) base_size * 0.13 else base_size * 0.176
     safe_plot <- function(scores_df, peer_points_df) {
       tryCatch(
         plot_scores_radar(

@@ -70,19 +70,7 @@ plot_scores_radar <- function(scores_df,
       return("")
     }
     if (requireNamespace("systemfonts", quietly = TRUE)) {
-      info <- try({
-        if (utils::packageVersion("systemfonts") >= "1.1.0") {
-          systemfonts::match_fonts(family)
-        } else {
-          systemfonts::match_font(family)
-        }
-      }, silent = TRUE)
-      if (!inherits(info, "try-error")) {
-        path <- if (is.data.frame(info)) info$path[[1]] else info$path
-        if (!is.na(path) && nzchar(path)) {
-          return(family)
-        }
-      }
+      return(family)
     }
     "Segoe UI"
   }
