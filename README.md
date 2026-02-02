@@ -110,6 +110,37 @@ The local reference row lives in `docs/sample_questionnaire.csv`. You can copy i
 - Shiny Server listens on `http://85.215.90.33:3838/axp-mvp-survey/app/`
 - HTTPS is expected to be added via Traefik + DNS (e.g., `axp.circe-science.de`)
 
+### Server sync (non-destructive)
+
+Use the following command block to sync the STRATO server with `origin/main` without clobbering local modifications. It backs up server-only files, attempts a fast-forward pull (no merge), restores secrets/configs, fixes ownership/permissions, and restarts Shiny Server. The backup/restore steps ensure `.Renviron`, `.Rprofile`, and the service account JSON survive even if tracked files change. The `--ff-only` pull protects against accidental merges when the server has local commits.
+
+```bash
+cd /srv/shiny-server/axp-mvp-survey
+
+# backup server-only files
+backup_dir="/tmp/axp-server-only-$(date +%Y%m%d%H%M%S)"
+mkdir -p "$backup_dir"
+cp -a app/.Rprofile app/.Renviron secret/axp-mvp-3ec693c04c81.json "$backup_dir"/ 2>/dev/null || true
+
+# sync without clobbering local changes
+git fetch origin
+git status --short
+git pull --ff-only origin main
+
+# restore server-only files (in case tracked files overwrote them)
+cp -a "$backup_dir"/.Rprofile app/.Rprofile 2>/dev/null || true
+cp -a "$backup_dir"/.Renviron app/.Renviron 2>/dev/null || true
+mkdir -p secret
+cp -a "$backup_dir"/axp-mvp-3ec693c04c81.json secret/axp-mvp-3ec693c04c81.json 2>/dev/null || true
+
+# fix ownership/permissions
+chown shiny:shiny app/.Rprofile app/.Renviron secret/axp-mvp-3ec693c04c81.json 2>/dev/null || true
+chmod 644 app/.Rprofile 2>/dev/null || true
+chmod 600 app/.Renviron secret/axp-mvp-3ec693c04c81.json 2>/dev/null || true
+
+systemctl restart shiny-server
+```
+
 ## Scoring and norms
 
 - Define scales in `docs/scales.csv`.
