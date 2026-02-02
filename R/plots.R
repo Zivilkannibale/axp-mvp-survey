@@ -162,6 +162,8 @@ plot_scores_radar <- function(scores_df,
                            ifelse(cos(label_df$theta) < -0.3, 1, 0.5))
   label_df$vjust <- ifelse(sin(label_df$theta) > 0.3, 0,
                            ifelse(sin(label_df$theta) < -0.3, 1, 0.5))
+  label_df$x <- ifelse(label_df$scale_id == "Anxiety", label_df$x - 0.06, label_df$x)
+  label_df$x <- ifelse(label_df$scale_id == "Impaired Control and Cognition", label_df$x + 0.06, label_df$x)
 
   grid_color <- "#d0d6e4"
   text_color <- "#3f4250"
@@ -207,14 +209,14 @@ plot_scores_radar <- function(scores_df,
       ggplot2::aes(x = x, y = y, group = 1),
       fill = ggplot2::alpha(purple, 0.22),
       color = purple,
-      linewidth = 1.1,
+      linewidth = 0.55,
       linejoin = "round"
     ) +
     ggplot2::geom_path(
       data = scores_closed,
       ggplot2::aes(x = x, y = y, group = 1),
       color = purple,
-      linewidth = 1.1,
+      linewidth = 0.55,
       linejoin = "round"
     ) +
     ggplot2::geom_point(
@@ -246,7 +248,7 @@ plot_scores_radar <- function(scores_df,
     ggplot2::theme(
       legend.position = "bottom",
       legend.box = "horizontal",
-      legend.text = ggplot2::element_text(color = text_color, size = base_size, family = font_family),
+      legend.text = ggplot2::element_text(color = text_color, size = base_size * 0.6, family = font_family),
       plot.margin = ggplot2::margin(10, 15, 30, 15)
     )
 
