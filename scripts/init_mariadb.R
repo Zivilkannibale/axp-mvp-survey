@@ -5,6 +5,13 @@
 # Usage: Rscript scripts/init_mariadb.R
 # -----------------------------------------------------------------------------
 
+# Load .Renviron from app/ directory (where Shiny Server expects it)
+renviron_path <- "app/.Renviron"
+if (file.exists(renviron_path)) {
+  readRenviron(renviron_path)
+  cat("Loaded environment from", renviron_path, "\n")
+}
+
 source("R/config.R")
 source("R/db.R")
 

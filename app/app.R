@@ -610,6 +610,34 @@ ui <- fluidPage(
         z-index: 3;
         text-align: center;
       }
+      /* Beta badge for experimental features */
+      .beta-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #ff6b6b, #ffa502);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        padding: 4px 10px;
+        border-radius: 4px;
+        margin-bottom: 12px;
+      }
+      .tracer-experimental {
+        border: 2px dashed rgba(255, 107, 107, 0.4);
+      }
+      .tracer-intro {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
+      .btn-secondary {
+        background: transparent !important;
+        border: 1px solid rgba(107, 61, 240, 0.5) !important;
+        color: #6b3df0 !important;
+      }
+      .btn-secondary:hover {
+        background: rgba(107, 61, 240, 0.08) !important;
+      }
       @media (max-width: 520px) {
         .intro-title { font-size: 26px; letter-spacing: 0.2em; }
         .intro-body { font-size: 12px; }
@@ -1434,7 +1462,7 @@ server <- function(input, output, session) {
   navigation_error <- reactiveVal("")
   validation_error <- reactiveVal("")
   progress_start_step <- 1
-  progress_end_step <- 15
+  progress_end_step <- 14  # Tracer moved to optional step 15
 
   observeEvent(input$reload_questionnaire, {
     sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
@@ -1594,18 +1622,12 @@ server <- function(input, output, session) {
     } else if (step == 12) {
       validation_error("")
       navigation_error("")
-      current_step(13)
+      current_step(13)  # Skip to final reveal (tracer is now optional step 15)
       show_transition_busy()
     } else if (step == 13) {
+      # Final reveal page - submit happens here, nav to step 14 handled by submit button
       validation_error("")
       navigation_error("")
-      current_step(14)
-      show_transition_busy()
-    } else if (step == 14) {
-      validation_error("")
-      navigation_error("")
-      current_step(15)
-      show_transition_busy()
     }
   })
 
@@ -1970,24 +1992,8 @@ server <- function(input, output, session) {
       ))
     }
 
+    # Step 13: Final reveal (submit triggers feedback)
     if (step == 13) {
-      return(tagList(
-        div(
-          class = "app-card",
-          h3("Experience Tracer"),
-          uiOutput("tracer_ui"),
-          div(class = "error-text", textOutput("validation_error"))
-        ),
-        div(
-          class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue"),
-          tags$button(type = "button", class = "submit-disabled", "Submit")
-        )
-      ))
-    }
-
-    if (step == 14) {
       return(tagList(
         div(
           class = "app-card reward-card",
@@ -2008,8 +2014,27 @@ server <- function(input, output, session) {
       ))
     }
 
+    # Step 14: Feedback display
+    if (step == 14) {
+      return(NULL)  # Feedback is rendered in feedback_panel
+    }
+
+    # Step 15: Optional Experience Tracer (experimental)
     if (step == 15) {
-      return(NULL)
+      return(tagList(
+        div(
+          class = "app-card tracer-experimental",
+          div(class = "beta-badge", "BETA / EXPERIMENTAL"),
+          h3("Experience Tracer"),
+          p(class = "tracer-intro", "Draw a curve representing your subjective experience intensity over time. This feature is experimental and your trace will not be saved yet."),
+          uiOutput("tracer_ui"),
+          div(class = "error-text", textOutput("validation_error"))
+        ),
+        div(
+          class = "nav-actions",
+          actionButton("back_to_feedback", "Back to Feedback")
+        )
+      ))
     }
   })
 
@@ -2200,11 +2225,12 @@ output$tracer_ui <- renderUI({
 
   output$feedback_panel <- renderUI({
     step <- current_step()
-    hidden <- step != 15
-    nav_actions <- if (step == 15) {
+    hidden <- step != 14  # Feedback now shows on step 14
+    nav_actions <- if (step == 14) {
       div(
         class = "nav-actions",
-        actionButton("prev_step", "Back")
+        actionButton("prev_step", "Back"),
+        actionButton("try_tracer", "Try Experience Tracer (Beta)", class = "btn-secondary")
       )
     } else {
       NULL
@@ -2217,7 +2243,7 @@ output$tracer_ui <- renderUI({
           h3("Feedback"),
           div(
             class = "feedback-note",
-            "Below is a preview of the feedback format. It currently uses mock data while we finalize data storage for real submissions."
+            "Below is your personalized feedback based on your responses."
           ),
           div(id = "feedback_loading", class = "muted", "Preparing feedback..."),
           plotOutput("radar_plot", height = "540px", width = "100%"),
@@ -2331,34 +2357,13 @@ output$tracer_ui <- renderUI({
       return()
     }
 
-    responses <- lapply(seq_len(nrow(items)), function(i) {
-      row <- items[i, ]
+    # Filter out experience_tracer items (tracer is optional/experimental)
+    items_no_tracer <- items[items$type != "experience_tracer", ]
+
+    responses <- lapply(seq_len(nrow(items_no_tracer)), function(i) {
+      row <- items_no_tracer[i, ]
       id <- row$item_id
       value <- input[[id]]
-      if (row$type == "experience_tracer") {
-        payload <- value
-        samples <- if ("tracer_samples" %in% names(row) && !is.na(row$tracer_samples)) {
-          as.numeric(row$tracer_samples)
-        } else {
-          101
-        }
-        y_min <- if ("tracer_y_min" %in% names(row) && !is.na(row$tracer_y_min)) {
-          as.numeric(row$tracer_y_min)
-        } else {
-          0
-        }
-        y_max <- if ("tracer_y_max" %in% names(row) && !is.na(row$tracer_y_max)) {
-          as.numeric(row$tracer_y_max)
-        } else {
-          100
-        }
-        resampled <- tracer_resample(payload, n = samples, y_min = y_min, y_max = y_max)
-        value <- jsonlite::toJSON(
-          list(raw = payload, resampled = resampled),
-          auto_unbox = TRUE,
-          null = "null"
-        )
-      }
       list(
         item_id = id,
         type = row$type,
@@ -2391,34 +2396,51 @@ output$tracer_ui <- renderUI({
 
     cfg <- get_config(required = FALSE)
     if (has_db_config(cfg)) {
-      conn <- db_connect(cfg)
-      on.exit(DBI::dbDisconnect(conn), add = TRUE)
+      tryCatch({
+        conn <- db_connect(cfg)
+        on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
-      DBI::dbWithTransaction(conn, {
-        # Schema auto-detects MariaDB vs Postgres variant
-        db_init_schema(conn, file.path(root_dir, "sql/001_init.sql"))
-        submission_id <- db_insert_submission(
-          conn,
-          list(
-            instrument_id = instrument_id(),
-            instrument_version = instrument_version(),
-            language = language(),
-            consent_version = "v1",
-            definition_hash = definition_hash()
+        DBI::dbWithTransaction(conn, {
+          # Schema auto-detects MariaDB vs Postgres variant
+          db_init_schema(conn, file.path(root_dir, "sql/001_init.sql"))
+          submission_id <- db_insert_submission(
+            conn,
+            list(
+              instrument_id = instrument_id(),
+              instrument_version = instrument_version(),
+              language = language(),
+              consent_version = "v1",
+              definition_hash = definition_hash()
+            )
           )
-        )
-        db_insert_responses_numeric(conn, submission_id, response_numeric)
-        db_insert_responses_text(conn, submission_id, response_text)
-        db_insert_scores(conn, submission_id, scores_df)
-      })
+          db_insert_responses_numeric(conn, submission_id, response_numeric)
+          db_insert_responses_text(conn, submission_id, response_text)
+          db_insert_scores(conn, submission_id, scores_df)
+        })
 
-      submission_status("Submission stored successfully.")
+        submission_status("Submission stored successfully.")
+      }, error = function(e) {
+        message("Database error: ", conditionMessage(e))
+        submission_status(paste0("Feedback generated (DB write failed: ", conditionMessage(e), ")"))
+      })
     } else {
-      submission_status("Submission received locally (DB not configured).")
+      submission_status("Feedback generated (DB not configured).")
     }
 
     latest_scores(scores_df)
+    current_step(14)  # Go to feedback page (step 14)
+    show_transition_busy()
+  })
+
+  # Navigate to optional Experience Tracer (Beta)
+  observeEvent(input$try_tracer, {
     current_step(15)
+    show_transition_busy()
+  })
+
+  # Return from tracer to feedback
+  observeEvent(input$back_to_feedback, {
+    current_step(14)
     show_transition_busy()
   })
 }
