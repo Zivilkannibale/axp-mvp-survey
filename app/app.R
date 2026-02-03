@@ -1094,7 +1094,7 @@ ui <- fluidPage(
             if (!slider) return null;
             var container = slider.closest('.shiny-input-container');
             if (!container) return null;
-            return container.querySelector('input.js-range-slider, input[type="text"], input[type="hidden"], input[type="range"]');
+            return container.querySelector(\"input.js-range-slider, input[type='text'], input[type='hidden'], input[type='range']\");
           }
 
           function computeValueFromClientX(slider, clientX) {
