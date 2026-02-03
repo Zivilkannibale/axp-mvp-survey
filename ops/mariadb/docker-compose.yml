@@ -1,0 +1,43 @@
+# =============================================================================
+# AXP MVP Survey - Self-hosted MariaDB
+# =============================================================================
+# This runs MariaDB locally on the vServer for survey data persistence.
+#
+# IMPORTANT:
+# - Port 3307 is used to avoid conflicts with any existing MySQL/MariaDB
+# - Binding to 127.0.0.1 ensures DB is NOT publicly reachable
+# - Version pinned to MariaDB 10.11 for stability
+# - Passwords must be set on the server only (never in git)
+#
+# Usage:
+#   cd /srv/shiny-server/axp-mvp-survey/ops/mariadb
+#   docker compose up -d
+#
+# =============================================================================
+
+services:
+  axp-mariadb:
+    image: mariadb:10.11
+    container_name: axp-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: axp_mvp
+      MARIADB_USER: axp_app
+      # MARIADB_PASSWORD: Set via .env file on server (never commit)
+      # MARIADB_ROOT_PASSWORD: Set via .env file on server (never commit)
+      TZ: Europe/Berlin
+    env_file:
+      - .env
+    volumes:
+      - axp_mariadb_data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:3307:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  axp_mariadb_data:

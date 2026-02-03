@@ -98,23 +98,25 @@ The local reference row lives in `docs/sample_questionnaire.csv`. You can copy i
 
 ## Production architecture (current)
 
-### Infrastructure overview (as of 2026-02-02)
+### Infrastructure overview (as of 2026-02-03)
 
 | Component | Technology | Details |
 |-----------|------------|--------|
 | Frontend | Shiny app | Deployed via Shiny Server on Ubuntu 20.04.6 LTS |
-| Raw data storage | Strato managed MariaDB 10.11 | TLS required; no IP whitelist |
+| Raw data storage | MariaDB 10.11 (self-hosted) | Docker container on vServer, localhost only |
 | Public data | OSF | Cleaned CSVs uploaded on schedule |
 | Questionnaire source | Google Sheets (build-time) | Multi-collaborator editing; CSV fallback |
+
+**Why self-hosted MariaDB?** The Strato managed DB resolves to a private IP (10.x.x.x) and has no IP whitelist feature, making it unreachable from the vServer. Self-hosting ensures reliable connectivity.
 
 ### Data lifecycle
 
 ```
 ┌─────────────────┐     ┌────────────────┐     ┌──────────────────┐
 │   Shiny UI      │────►│  Validate +    │────►│  MariaDB (raw)   │
-│  (participant)  │     │  sanitize      │     │  - sessions      │
-└─────────────────┘     └────────────────┘     │  - answers_raw   │
-                                                │  - free_text_raw │
+│  (participant)  │     │  sanitize      │     │  - submission    │
+└─────────────────┘     └────────────────┘     │  - responses     │
+                                                │  - scores        │
                                                 └────────┬─────────┘
                                                          │ periodic
                                                          ▼ export job
@@ -139,23 +141,34 @@ The local reference row lives in `docs/sample_questionnaire.csv`. You can copy i
 
 **Important:** Public CSVs must NOT contain raw free text or identifiable metadata. Free-text is stored only in MariaDB for potential manual review and is never exported.
 
-### Database configuration (MariaDB)
+### Database configuration (MariaDB - self-hosted)
+
+The database runs as a Docker container on the vServer, bound to localhost only (not publicly accessible).
 
 Set the following environment variables (in `app/.Renviron` on server):
 
 ```bash
 DB_DIALECT=mariadb
-DB_HOST=database-5019530911.webspace-host.com
-DB_PORT=3306
-DB_NAME=dbs15265782
-DB_USER=dbu4550099
+DB_HOST=127.0.0.1
+DB_PORT=3307
+DB_NAME=axp_mvp
+DB_USER=axp_app
 DB_PASSWORD=...        # NEVER commit
-DB_TLS=1               # Enable TLS (recommended)
-DB_TLS_VERIFY=1        # Verify server certificate (optional)
-DB_TLS_CA_PATH=        # Custom CA path (optional; use system CA if blank)
+DB_SSL=false           # TLS not needed for localhost
+DB_USER=axp_app
+DB_PASSWORD=...        # NEVER commit
+DB_SSL=false           # TLS not needed for localhost
 ```
 
+**Note:** `DB_SSL=false` is correct for localhost connections. TLS is only needed for remote databases.
+
 For local development without a database, simply omit `DB_*` variables — the app will skip DB writes.
+
+### Full deployment guide
+
+For complete step-by-step instructions including Docker setup, backups, and cron jobs, see:
+
+📄 **[docs/DEPLOYMENT_VSERVER_DB.md](docs/DEPLOYMENT_VSERVER_DB.md)**
 
 ### Secrets management
 
@@ -229,7 +242,12 @@ systemctl restart shiny-server
 
 ## Deploy steps (operator checklist)
 
-When deploying updates to the STRATO server:
+For the **full deployment guide** including database setup, backups, and cron jobs, see:
+**[docs/DEPLOYMENT_VSERVER_DB.md](docs/DEPLOYMENT_VSERVER_DB.md)**
+
+### Quick deployment (code updates only)
+
+When deploying code updates to the vServer (database already running):
 
 ```bash
 # 1. SSH into the server
@@ -241,35 +259,43 @@ git fetch origin
 git pull --ff-only origin main
 
 # 3. Restore R dependencies (fix renv drift)
-sudo -u shiny R -e "renv::restore()"
+sudo -u shiny Rscript -e "renv::restore()"
 
 # 4. If systemfonts or uuid missing/outdated:
-sudo -u shiny R -e "renv::install('systemfonts')"
-sudo -u shiny R -e "renv::install('uuid')"
+sudo -u shiny Rscript -e "renv::install('systemfonts')"
+sudo -u shiny Rscript -e "renv::install('uuid')"
 
-# 5. Update app/.Renviron with DB_* vars (if not already)
-#    IMPORTANT: Add DB_PASSWORD here, owned by shiny, chmod 600
-cat >> /srv/shiny-server/axp-mvp-survey/app/.Renviron << 'EOF'
-DB_DIALECT=mariadb
-DB_HOST=database-5019530911.webspace-host.com
-DB_PORT=3306
-DB_NAME=dbs15265782
-DB_USER=dbu4550099
-DB_PASSWORD=YOUR_PASSWORD_HERE
-DB_TLS=1
-EOF
-chown shiny:shiny /srv/shiny-server/axp-mvp-survey/app/.Renviron
-chmod 600 /srv/shiny-server/axp-mvp-survey/app/.Renviron
-
-# 6. Initialize DB schema (one-time, or after migrations)
-sudo -u shiny R -e "source('scripts/init_db.R')"
-
-# 7. Restart Shiny Server
+# 5. Restart Shiny Server
 systemctl restart shiny-server
 
-# 8. Verify
+# 6. Verify
 systemctl status shiny-server
 curl -s http://localhost:3838/axp-mvp-survey/app/ | head -20
+```
+
+### Initial database setup (one-time)
+
+```bash
+# 1. Start MariaDB container
+cd /srv/shiny-server/axp-mvp-survey/ops/mariadb
+cp .env.example .env
+nano .env  # Set MARIADB_PASSWORD and MARIADB_ROOT_PASSWORD
+chmod 600 .env
+docker compose up -d
+
+# 2. Configure Shiny environment
+cd /srv/shiny-server/axp-mvp-survey/app
+cp .Renviron.example .Renviron
+nano .Renviron  # Set DB_PASSWORD (same as MARIADB_PASSWORD)
+chmod 600 .Renviron
+chown shiny:shiny .Renviron
+
+# 3. Initialize database schema
+cd /srv/shiny-server/axp-mvp-survey
+sudo -u shiny Rscript scripts/init_mariadb.R
+
+# 4. Restart Shiny Server
+systemctl restart shiny-server
 ```
 
 ### renv drift (known issues on server)

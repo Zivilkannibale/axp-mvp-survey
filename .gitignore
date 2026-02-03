@@ -11,4 +11,5 @@ renv/python/
 Thumbs.db
 .env
 .Renviron
+ops/mariadb/.env
 exports/
