@@ -45,6 +45,8 @@ In another shell, verify DB writes:
 docker exec -e MYSQL_PWD=<app_password> axp-mariadb mariadb -u axp_app -e "SELECT COUNT(*) FROM submission;" axp_mvp
 ```
 
+Note: On the vServer, the `mysql` CLI may not be installed. Use `docker exec ... mariadb` as shown above to query the DB from the container.
+
 ## For New Contributors
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for:

@@ -199,6 +199,17 @@ docker exec -e MYSQL_PWD=<app_password> axp-mariadb mariadb -u axp_app -e "SELEC
 
 ---
 
+## Notes From Deployment (2026-02-03)
+
+- If `mysql` CLI is missing on the vServer, use the MariaDB client inside the container:
+  `docker exec -e MYSQL_PWD=<app_password> axp-mariadb mariadb -u axp_app -e "SELECT COUNT(*) FROM submission;" axp_mvp`
+- If `renv` attempts to bootstrap inside `app/`, ensure `app/.Rprofile` exists and sets
+  `RENV_PROJECT` to the repo root (already included in this branch).
+- If `RMariaDB` fails to install, install system dependency:
+  `apt install -y libmysqlclient-dev`
+- Ensure `shiny` owns the repo `renv/` directory so packages can be installed:
+  `chown -R shiny:shiny /srv/shiny-server/axp-mvp-survey/renv`
+
 ## Step 6: Configure Automated Backups
 
 ### Create Backup Directory
