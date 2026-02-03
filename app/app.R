@@ -1099,6 +1099,7 @@ ui <- fluidPage(
 
         function installSliderDragProxy() {
           if (window.__axpSliderDragProxy) return;
+          var dragState = { active: false, slider: null, pointerId: null };
           function getRangeInput(slider) {
             if (!slider) return null;
             var container = slider.closest('.shiny-input-container');
@@ -1135,43 +1136,46 @@ ui <- fluidPage(
 
           function proxyPointerDown(e) {
             var target = e.target;
-            if (!target || target.closest('.irs-handle')) return;
+            if (!target) return;
             var slider = target.closest('.irs');
             if (!slider) return;
+            var handle = slider.querySelector('.irs-handle');
             var line = target.closest('.irs-line, .irs-bar, .irs-bar-edge') || slider.querySelector('.irs-line');
             if (!line) return;
             if (e.preventDefault) e.preventDefault();
             if (e.stopPropagation) e.stopPropagation();
+            if (handle) {
+              var hRect = handle.getBoundingClientRect();
+              var hx = hRect.left + hRect.width / 2;
+              var hy = hRect.top + hRect.height / 2;
+              var dx = e.clientX - hx;
+              var dy = e.clientY - hy;
+              var dist = Math.sqrt(dx * dx + dy * dy);
+              var maxDist = Math.max(36, hRect.width * 1.5);
+              if (dist > maxDist && !target.closest('.irs-line, .irs-bar, .irs-bar-edge')) {
+                return;
+              }
+            }
             var startVal = computeValueFromClientX(slider, e.clientX);
             if (startVal == null) return;
             updateSliderValue(slider, startVal);
 
-            var dragging = true;
-            function onMove(ev) {
-              if (!dragging) return;
-              var v = computeValueFromClientX(slider, ev.clientX);
-              if (v == null) return;
-              updateSliderValue(slider, v);
-            }
-            function onUp() {
-              dragging = false;
-              document.removeEventListener('pointermove', onMove);
-              document.removeEventListener('pointerup', onUp);
-              document.removeEventListener('mousemove', onMove);
-              document.removeEventListener('mouseup', onUp);
-              document.removeEventListener('touchmove', onTouchMove);
-              document.removeEventListener('touchend', onUp);
-            }
-            function onTouchMove(ev) {
-              if (!ev.touches || !ev.touches.length) return;
-              onMove({ clientX: ev.touches[0].clientX });
-            }
-            document.addEventListener('pointermove', onMove, { passive: false });
-            document.addEventListener('pointerup', onUp, { passive: false });
-            document.addEventListener('mousemove', onMove, { passive: false });
-            document.addEventListener('mouseup', onUp, { passive: false });
-            document.addEventListener('touchmove', onTouchMove, { passive: false });
-            document.addEventListener('touchend', onUp, { passive: false });
+            dragState.active = true;
+            dragState.slider = slider;
+            dragState.pointerId = e.pointerId || null;
+          }
+
+          function onGlobalMove(ev) {
+            if (!dragState.active || !dragState.slider) return;
+            var v = computeValueFromClientX(dragState.slider, ev.clientX);
+            if (v == null) return;
+            updateSliderValue(dragState.slider, v);
+          }
+
+          function onGlobalUp() {
+            dragState.active = false;
+            dragState.slider = null;
+            dragState.pointerId = null;
           }
 
           document.addEventListener('pointerdown', proxyPointerDown, { passive: false, capture: true });
@@ -1188,6 +1192,15 @@ ui <- fluidPage(
               pointerId: 1
             });
           }, { passive: false, capture: true });
+          document.addEventListener('pointermove', onGlobalMove, { passive: false, capture: true });
+          document.addEventListener('mousemove', onGlobalMove, { passive: false, capture: true });
+          document.addEventListener('touchmove', function(ev) {
+            if (!ev.touches || !ev.touches.length) return;
+            onGlobalMove({ clientX: ev.touches[0].clientX });
+          }, { passive: false, capture: true });
+          document.addEventListener('pointerup', onGlobalUp, { passive: false, capture: true });
+          document.addEventListener('mouseup', onGlobalUp, { passive: false, capture: true });
+          document.addEventListener('touchend', onGlobalUp, { passive: false, capture: true });
 
           window.__axpSliderDragProxy = true;
         }
