@@ -2238,7 +2238,28 @@ output$tracer_ui <- renderUI({
   }
 
   output$validation_error <- renderText(validation_error())
-  output$submission_status <- renderText(submission_status())
+  output$feedback_summary <- renderUI({
+    status_line <- submission_status()
+    scores_ready <- nrow(latest_scores()) > 0
+    status_text <- if (status_line != "") {
+      status_line
+    } else if (!scores_ready) {
+      "Preparing feedback…"
+    } else {
+      ""
+    }
+
+    tagList(
+      p(
+        class = "feedback-note",
+        tags$strong("How to read this chart:"),
+        " The purple shape shows your scores from this submission.",
+        " Farther from the center means a stronger reported experience.",
+        " The gray dots summarize how other people tended to respond (mock data for now)."
+      ),
+      if (status_text != "") p(class = "muted", status_text)
+    )
+  })
 
   output$feedback_panel <- renderUI({
     step <- current_step()
@@ -2258,13 +2279,9 @@ output$tracer_ui <- renderUI({
         div(
           class = "app-card",
           h3("Feedback"),
-          div(
-            class = "feedback-note",
-            "Below is your personalized feedback based on your responses."
-          ),
-          div(id = "feedback_loading", class = "muted", "Preparing feedback..."),
+          uiOutput("feedback_summary"),
           plotOutput("radar_plot", height = "540px", width = "100%"),
-          verbatimTextOutput("submission_status")
+          NULL
         ),
         nav_actions
       )

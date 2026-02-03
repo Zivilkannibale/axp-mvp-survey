@@ -158,12 +158,8 @@ plot_scores_radar <- function(scores_df,
     theta = label_xy$theta
   )
   label_df$label <- wrap_two_lines(label_df$scale_id, width = label_width)
-  label_df$hjust <- ifelse(cos(label_df$theta) > 0.3, 0,
-                           ifelse(cos(label_df$theta) < -0.3, 1, 0.5))
-  label_df$vjust <- ifelse(sin(label_df$theta) > 0.3, 0,
-                           ifelse(sin(label_df$theta) < -0.3, 1, 0.5))
-  label_df$x <- ifelse(label_df$scale_id == "Anxiety", label_df$x - 0.06, label_df$x)
-  label_df$x <- ifelse(label_df$scale_id == "Impaired Control and Cognition", label_df$x + 0.06, label_df$x)
+  label_df$hjust <- 0.5
+  label_df$vjust <- 0.5
 
   grid_color <- "#d0d6e4"
   text_color <- "#3f4250"
@@ -195,7 +191,7 @@ plot_scores_radar <- function(scores_df,
     p <- p +
       ggplot2::geom_point(
         data = peer_points_df,
-        ggplot2::aes(x = x, y = y, color = "Everybody else"),
+        ggplot2::aes(x = x, y = y, color = "Others"),
         size = 1.2,
         alpha = 0.35
       )
@@ -221,7 +217,7 @@ plot_scores_radar <- function(scores_df,
     ) +
     ggplot2::geom_point(
       data = scores_df,
-      ggplot2::aes(x = x, y = y, color = "Your results"),
+      ggplot2::aes(x = x, y = y, color = "You"),
       size = 1.1
     ) +
     ggplot2::geom_text(
@@ -234,14 +230,14 @@ plot_scores_radar <- function(scores_df,
       lineheight = 0.95
     ) +
     ggplot2::scale_color_manual(
-      values = c("Your results" = purple, "Everybody else" = grey),
-      breaks = c("Your results", "Everybody else")
+      values = c("You" = purple, "Others" = grey),
+      breaks = c("You", "Others")
     ) +
     ggplot2::coord_equal(xlim = c(-limit, limit), ylim = c(-limit, limit), clip = "off") +
     ggplot2::guides(
       color = ggplot2::guide_legend(
         title = NULL,
-        override.aes = list(size = c(1.1, 1.2), alpha = c(1, 0.35))
+        override.aes = list(size = c(1.1, 1.0), alpha = c(1, 0.35))
       )
     ) +
     ggplot2::theme_void(base_family = font_family) +
@@ -249,6 +245,8 @@ plot_scores_radar <- function(scores_df,
       legend.position = "bottom",
       legend.box = "horizontal",
       legend.text = ggplot2::element_text(color = text_color, size = base_size * 0.6, family = font_family),
+      legend.key.width = grid::unit(0.8, "lines"),
+      legend.spacing.x = grid::unit(0.4, "lines"),
       plot.margin = ggplot2::margin(10, 15, 30, 15)
     )
 
