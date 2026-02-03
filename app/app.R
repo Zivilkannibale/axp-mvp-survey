@@ -157,7 +157,7 @@ ui <- fluidPage(
       h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.01em; }
       #p6m-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
       #p6m-layer canvas { width: 100%; height: 100%; display: block; }
-      .app-shell { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 28px 20px 48px; }
+      .app-shell { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 28px 20px 48px; background: transparent; }
       .app-shell .irs,
       .app-shell .slider-labels,
       .app-shell #radar_plot,
@@ -254,10 +254,7 @@ ui <- fluidPage(
       .quetzio-question.type-sliderInput .shiny-input-container { min-height: 56px; overflow: hidden; position: relative; }
       .quetzio-question.type-sliderInput input[type='range'] { height: 56px; opacity: 0; }
       .irs--shiny .irs-line, .irs--shiny .irs-line::before, .irs--shiny .irs-bar, .irs--shiny .irs-bar::before, .irs--shiny .irs-handle { cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%236b3df0' d='M10 2V9.5H9V3C9 2.45 8.55 2 8 2S7 2.45 7 3V14.35L4.5 11.53C4.06 11.04 3.32 10.97 2.79 11.35C2.21 11.77 2.07 12.58 2.47 13.17L5.73 17.96C6.85 19.86 8.9 21 11.11 21H13C16.31 21 19 18.31 19 15V6C19 5.45 18.55 5 18 5S17 5.45 17 6V9.5H16V4C16 3.45 15.55 3 15 3S14 3.45 14 4V9.5H13V3C13 2.45 12.55 2 12 2S11 2.45 11 3V9.5H10V2Z'/%3E%3C/svg%3E\") 12 0, pointer !important; }
-      .irs--shiny { height: 56px; clip-path: inset(100%); opacity: 0; transition: opacity 325ms ease, clip-path 0ms 0ms; }
-      .irs--shiny.is-ready { clip-path: inset(0); opacity: 1; }
-      .irs--shiny:not(.is-ready) { opacity: 0; }
-      .irs--shiny:not(.is-ready) * { pointer-events: none !important; }
+      .irs--shiny { height: 56px; clip-path: inset(0); opacity: 1; transition: opacity 325ms ease; }
       .irs--shiny.is-untouched .irs-bar,
       .irs--shiny.is-untouched .irs-bar-edge { opacity: 0.2; }
       .irs--shiny.is-untouched .irs-handle,
@@ -1448,7 +1445,7 @@ ui <- fluidPage(
       }
       .app-shell {
         min-height: 100vh;
-        background-color: var(--bg);
+        background-color: transparent;
       }
       body::before {
         content: '';
