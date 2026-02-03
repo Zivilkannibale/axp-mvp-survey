@@ -1088,6 +1088,71 @@ ui <- fluidPage(
         }
         window.__axpUpdateSliderNextState = updateSliderNextState;
 
+        function installSliderDragProxy() {
+          if (window.__axpSliderDragProxy) return;
+          function proxyPointerDown(e) {
+            var target = e.target;
+            if (!target || target.closest('.irs-handle')) return;
+            var line = target.closest('.irs-line, .irs-bar, .irs-bar-edge');
+            if (!line) return;
+            var slider = line.closest('.irs');
+            if (!slider) return;
+            var handle = slider.querySelector('.irs-handle');
+            if (!handle) return;
+
+            // Move the slider to the clicked position.
+            try {
+              line.dispatchEvent(new MouseEvent('mousedown', {
+                bubbles: true,
+                cancelable: true,
+                clientX: e.clientX,
+                clientY: e.clientY
+              }));
+            } catch (err) {}
+
+            // Start dragging from the clicked position without requiring a second press.
+            try {
+              if (handle.setPointerCapture && e.pointerId != null) {
+                handle.setPointerCapture(e.pointerId);
+              }
+              if (window.PointerEvent) {
+                handle.dispatchEvent(new PointerEvent('pointerdown', {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                  pointerId: e.pointerId || 1,
+                  pointerType: e.pointerType || 'mouse',
+                  isPrimary: true
+                }));
+              } else {
+                handle.dispatchEvent(new MouseEvent('mousedown', {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: e.clientX,
+                  clientY: e.clientY
+                }));
+              }
+            } catch (err) {}
+          }
+
+          document.addEventListener('pointerdown', proxyPointerDown, { passive: true });
+          document.addEventListener('mousedown', proxyPointerDown, { passive: true });
+          document.addEventListener('touchstart', function(ev) {
+            if (!ev.touches || !ev.touches.length) return;
+            var t = ev.touches[0];
+            proxyPointerDown({
+              target: ev.target,
+              clientX: t.clientX,
+              clientY: t.clientY,
+              pointerType: 'touch',
+              pointerId: 1
+            });
+          }, { passive: true });
+
+          window.__axpSliderDragProxy = true;
+        }
+
         function showBusy() {
           if (!busy) return;
           if (!bootHidden) return;
@@ -1138,6 +1203,7 @@ ui <- fluidPage(
           if (boot) boot.classList.remove('hidden');
           if (busy) busy.classList.add('hidden');
           installRewardSpriteAnimator();
+          installSliderDragProxy();
           updateSliderNextState();
 
           // Failsafe in case Shiny events don't fire
@@ -1153,6 +1219,7 @@ ui <- fluidPage(
           setBootProgress(55);
           waitForPageObserver();
           installRewardSpriteAnimator();
+          installSliderDragProxy();
           updateSliderNextState();
         });
 
@@ -1332,8 +1399,17 @@ ui <- fluidPage(
       js
     })),
     if (!P6M_ENABLED) tags$style(HTML("
+      html, body {
+        min-height: 100%;
+        background-color: var(--bg);
+      }
       body {
         background-color: var(--bg);
+        background-image: url('circe-bg.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-attachment: fixed;
       }
       body::before {
         content: '';
@@ -2324,7 +2400,7 @@ output$tracer_ui <- renderUI({
     base_size <- max(8, min(12, width / 55))
     is_phone <- width < 420
     label_width <- if (is_phone) 16 else 20
-    label_radius <- if (is_phone) 1.18 else 1.26
+    label_radius <- if (is_phone) 1.24 else 1.34
     label_size <- if (is_phone) base_size * 0.13 else base_size * 0.176
     safe_plot <- function(scores_df, peer_points_df) {
       tryCatch(
