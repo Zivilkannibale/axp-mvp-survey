@@ -49,6 +49,8 @@ MariaDB database on the vServer for the AXP MVP Survey application.
 - SSH access to vServer as root
 - Docker and docker-compose installed (already present)
 - Git repo cloned at `/srv/shiny-server/axp-mvp-survey`
+- For local Windows testing: R installed (and `R.exe`/`Rscript.exe` available),
+  Docker Desktop running, and `RMariaDB` installed in the project `renv` library.
 
 ---
 
@@ -169,6 +171,30 @@ systemctl status shiny-server
 
 ```bash
 mysql -h 127.0.0.1 -P 3307 -u axp_app -p axp_mvp -e "SELECT COUNT(*) FROM submission;"
+```
+
+---
+
+## Local Testing (Windows)
+
+If you are running the app locally (not on the vServer), ensure R loads
+`app/.Renviron` so the DB settings are available to the app.
+
+```powershell
+$env:R_ENVIRON_USER = "C:\\Users\\<you>\\source\\repos\\axp-mvp-survey\\app\\.Renviron"
+R.exe -q -e "shiny::runApp('app', port = 3838)"
+```
+
+If the app logs: `RMariaDB package is required`, install it in the project:
+
+```powershell
+R.exe -q -e "renv::install('RMariaDB')"
+```
+
+To verify local DB writes without stopping the app, run in a second shell:
+
+```powershell
+docker exec -e MYSQL_PWD=<app_password> axp-mariadb mariadb -u axp_app -e "SELECT COUNT(*) FROM submission;" axp_mvp
 ```
 
 ---

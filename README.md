@@ -26,6 +26,25 @@ Sys.setenv(DEV_MODE = "true")
 shiny::runApp("app")
 ```
 
+**Local MariaDB smoke test (Windows + Docker Desktop):**
+
+```powershell
+# Ensure R loads app/.Renviron for DB_* settings
+$env:R_ENVIRON_USER = "C:\Users\<you>\source\repos\axp-mvp-survey\app\.Renviron"
+
+# Install RMariaDB if needed
+R.exe -q -e "renv::install('RMariaDB')"
+
+# Run the app
+R.exe -q -e "shiny::runApp('app', port = 3838)"
+```
+
+In another shell, verify DB writes:
+
+```powershell
+docker exec -e MYSQL_PWD=<app_password> axp-mariadb mariadb -u axp_app -e "SELECT COUNT(*) FROM submission;" axp_mvp
+```
+
 ## For New Contributors
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for:
