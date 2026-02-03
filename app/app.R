@@ -282,6 +282,11 @@ ui <- fluidPage(
         letter-spacing: 0.08em;
       }
       .nav-actions .btn:hover { background: var(--accent-soft); }
+      .feedback-note--compact {
+        font-size: 0.98rem;
+        line-height: 1.5;
+        color: #2f3142;
+      }
       #next_step:disabled,
       #next_step.is-disabled {
         opacity: 0.45;
@@ -2251,7 +2256,7 @@ output$tracer_ui <- renderUI({
 
     tagList(
       p(
-        class = "feedback-note",
+        class = "feedback-note feedback-note--compact",
         tags$strong("How to read this chart:"),
         " The purple shape shows your scores from this submission.",
         " Farther from the center means a stronger reported experience.",
@@ -2319,7 +2324,7 @@ output$tracer_ui <- renderUI({
     base_size <- max(8, min(12, width / 55))
     is_phone <- width < 420
     label_width <- if (is_phone) 16 else 20
-    label_radius <- if (is_phone) 1.08 else 1.14
+    label_radius <- if (is_phone) 1.18 else 1.26
     label_size <- if (is_phone) base_size * 0.13 else base_size * 0.176
     safe_plot <- function(scores_df, peer_points_df) {
       tryCatch(
