@@ -253,7 +253,11 @@ ui <- fluidPage(
       .shiny-input-container { width: 100%; max-width: 100%; }
       .quetzio-question.type-sliderInput .shiny-input-container { min-height: 56px; overflow: hidden; position: relative; }
       .quetzio-question.type-sliderInput input[type='range'] { height: 56px; opacity: 0; }
-      .irs--shiny .irs-line, .irs--shiny .irs-line::before, .irs--shiny .irs-bar, .irs--shiny .irs-bar::before, .irs--shiny .irs-handle { cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%236b3df0' d='M10 2V9.5H9V3C9 2.45 8.55 2 8 2S7 2.45 7 3V14.35L4.5 11.53C4.06 11.04 3.32 10.97 2.79 11.35C2.21 11.77 2.07 12.58 2.47 13.17L5.73 17.96C6.85 19.86 8.9 21 11.11 21H13C16.31 21 19 18.31 19 15V6C19 5.45 18.55 5 18 5S17 5.45 17 6V9.5H16V4C16 3.45 15.55 3 15 3S14 3.45 14 4V9.5H13V3C13 2.45 12.55 2 12 2S11 2.45 11 3V9.5H10V2Z'/%3E%3C/svg%3E\") 12 0, pointer !important; }
+      .irs--shiny .irs-line, .irs--shiny .irs-line::before, .irs--shiny .irs-bar, .irs--shiny .irs-bar::before, .irs--shiny .irs-handle {
+        cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%236b3df0' d='M10 2V9.5H9V3C9 2.45 8.55 2 8 2S7 2.45 7 3V14.35L4.5 11.53C4.06 11.04 3.32 10.97 2.79 11.35C2.21 11.77 2.07 12.58 2.47 13.17L5.73 17.96C6.85 19.86 8.9 21 11.11 21H13C16.31 21 19 18.31 19 15V6C19 5.45 18.55 5 18 5S17 5.45 17 6V9.5H16V4C16 3.45 15.55 3 15 3S14 3.45 14 4V9.5H13V3C13 2.45 12.55 2 12 2S11 2.45 11 3V9.5H10V2Z'/%3E%3C/svg%3E\") 12 0, pointer !important;
+        user-select: none;
+        touch-action: none;
+      }
       .irs--shiny { height: 56px; clip-path: inset(0); opacity: 1; transition: opacity 325ms ease; }
       .irs--shiny.is-untouched .irs-bar,
       .irs--shiny.is-untouched .irs-bar-edge { opacity: 0.2; }
@@ -1132,11 +1136,12 @@ ui <- fluidPage(
           function proxyPointerDown(e) {
             var target = e.target;
             if (!target || target.closest('.irs-handle')) return;
-            var line = target.closest('.irs-line, .irs-bar, .irs-bar-edge');
-            if (!line) return;
-            var slider = line.closest('.irs');
+            var slider = target.closest('.irs');
             if (!slider) return;
+            var line = target.closest('.irs-line, .irs-bar, .irs-bar-edge') || slider.querySelector('.irs-line');
+            if (!line) return;
             if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
             var startVal = computeValueFromClientX(slider, e.clientX);
             if (startVal == null) return;
             updateSliderValue(slider, startVal);
@@ -1169,8 +1174,8 @@ ui <- fluidPage(
             document.addEventListener('touchend', onUp, { passive: false });
           }
 
-          document.addEventListener('pointerdown', proxyPointerDown, { passive: false });
-          document.addEventListener('mousedown', proxyPointerDown, { passive: false });
+          document.addEventListener('pointerdown', proxyPointerDown, { passive: false, capture: true });
+          document.addEventListener('mousedown', proxyPointerDown, { passive: false, capture: true });
           document.addEventListener('touchstart', function(ev) {
             if (!ev.touches || !ev.touches.length) return;
             var t = ev.touches[0];
@@ -1182,7 +1187,7 @@ ui <- fluidPage(
               pointerType: 'touch',
               pointerId: 1
             });
-          }, { passive: false });
+          }, { passive: false, capture: true });
 
           window.__axpSliderDragProxy = true;
         }
