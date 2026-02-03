@@ -1088,6 +1088,14 @@ ui <- fluidPage(
         }
         window.__axpUpdateSliderNextState = updateSliderNextState;
 
+        function ensureSlidersReady() {
+          var sliders = document.querySelectorAll('.irs--shiny');
+          sliders.forEach(function(node) {
+            node.classList.add('is-ready');
+          });
+        }
+        window.__axpEnsureSlidersReady = ensureSlidersReady;
+
         function installSliderDragProxy() {
           if (window.__axpSliderDragProxy) return;
           function getRangeInput(slider) {
@@ -1121,6 +1129,7 @@ ui <- fluidPage(
             if (!instance) return;
             instance.update({ from: value });
             $(input).trigger('change');
+            slider.classList.add('is-ready');
           }
 
           function proxyPointerDown(e) {
@@ -1230,6 +1239,7 @@ ui <- fluidPage(
           if (busy) busy.classList.add('hidden');
           installRewardSpriteAnimator();
           installSliderDragProxy();
+          ensureSlidersReady();
           updateSliderNextState();
 
           // Failsafe in case Shiny events don't fire
@@ -1246,10 +1256,12 @@ ui <- fluidPage(
           waitForPageObserver();
           installRewardSpriteAnimator();
           installSliderDragProxy();
+          ensureSlidersReady();
           updateSliderNextState();
         });
 
         document.addEventListener('shiny:inputchanged', function() {
+          ensureSlidersReady();
           updateSliderNextState();
         });
 
@@ -1444,6 +1456,12 @@ ui <- fluidPage(
         background-position: center;
         background-size: cover;
         background-attachment: fixed;
+      }
+      @media (max-width: 900px) {
+        body,
+        .app-shell {
+          background-attachment: scroll;
+        }
       }
       body::before {
         content: '';
@@ -2434,7 +2452,7 @@ output$tracer_ui <- renderUI({
     base_size <- max(8, min(12, width / 55))
     is_phone <- width < 420
     label_width <- if (is_phone) 16 else 20
-    label_radius <- if (is_phone) 1.32 else 1.42
+    label_radius <- if (is_phone) 1.38 else 1.5
     label_size <- if (is_phone) base_size * 0.13 else base_size * 0.176
     safe_plot <- function(scores_df, peer_points_df) {
       tryCatch(
