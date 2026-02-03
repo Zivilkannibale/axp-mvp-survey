@@ -1090,6 +1090,39 @@ ui <- fluidPage(
 
         function installSliderDragProxy() {
           if (window.__axpSliderDragProxy) return;
+          function getRangeInput(slider) {
+            if (!slider) return null;
+            var container = slider.closest('.shiny-input-container');
+            if (!container) return null;
+            return container.querySelector('input.js-range-slider, input[type="text"], input[type="hidden"], input[type="range"]');
+          }
+
+          function computeValueFromClientX(slider, clientX) {
+            var line = slider.querySelector('.irs-line');
+            if (!line) return null;
+            var rect = line.getBoundingClientRect();
+            var pct = (clientX - rect.left) / rect.width;
+            pct = Math.max(0, Math.min(1, pct));
+            var input = getRangeInput(slider);
+            var instance = input ? $(input).data('ionRangeSlider') : null;
+            if (!instance) return null;
+            var min = instance.options.min;
+            var max = instance.options.max;
+            var step = instance.options.step || 1;
+            var raw = min + pct * (max - min);
+            var stepped = Math.round(raw / step) * step;
+            return Math.max(min, Math.min(max, stepped));
+          }
+
+          function updateSliderValue(slider, value) {
+            var input = getRangeInput(slider);
+            if (!input) return;
+            var instance = $(input).data('ionRangeSlider');
+            if (!instance) return;
+            instance.update({ from: value });
+            $(input).trigger('change');
+          }
+
           function proxyPointerDown(e) {
             var target = e.target;
             if (!target || target.closest('.irs-handle')) return;
@@ -1097,43 +1130,36 @@ ui <- fluidPage(
             if (!line) return;
             var slider = line.closest('.irs');
             if (!slider) return;
-            var handle = slider.querySelector('.irs-handle');
-            if (!handle) return;
+            var startVal = computeValueFromClientX(slider, e.clientX);
+            if (startVal == null) return;
+            updateSliderValue(slider, startVal);
 
-            // Move the slider to the clicked position.
-            try {
-              line.dispatchEvent(new MouseEvent('mousedown', {
-                bubbles: true,
-                cancelable: true,
-                clientX: e.clientX,
-                clientY: e.clientY
-              }));
-            } catch (err) {}
-
-            // Start dragging from the clicked position without requiring a second press.
-            try {
-              if (handle.setPointerCapture && e.pointerId != null) {
-                handle.setPointerCapture(e.pointerId);
-              }
-              if (window.PointerEvent) {
-                handle.dispatchEvent(new PointerEvent('pointerdown', {
-                  bubbles: true,
-                  cancelable: true,
-                  clientX: e.clientX,
-                  clientY: e.clientY,
-                  pointerId: e.pointerId || 1,
-                  pointerType: e.pointerType || 'mouse',
-                  isPrimary: true
-                }));
-              } else {
-                handle.dispatchEvent(new MouseEvent('mousedown', {
-                  bubbles: true,
-                  cancelable: true,
-                  clientX: e.clientX,
-                  clientY: e.clientY
-                }));
-              }
-            } catch (err) {}
+            var dragging = true;
+            function onMove(ev) {
+              if (!dragging) return;
+              var v = computeValueFromClientX(slider, ev.clientX);
+              if (v == null) return;
+              updateSliderValue(slider, v);
+            }
+            function onUp() {
+              dragging = false;
+              document.removeEventListener('pointermove', onMove);
+              document.removeEventListener('pointerup', onUp);
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+              document.removeEventListener('touchmove', onTouchMove);
+              document.removeEventListener('touchend', onUp);
+            }
+            function onTouchMove(ev) {
+              if (!ev.touches || !ev.touches.length) return;
+              onMove({ clientX: ev.touches[0].clientX });
+            }
+            document.addEventListener('pointermove', onMove, { passive: true });
+            document.addEventListener('pointerup', onUp, { passive: true });
+            document.addEventListener('mousemove', onMove, { passive: true });
+            document.addEventListener('mouseup', onUp, { passive: true });
+            document.addEventListener('touchmove', onTouchMove, { passive: true });
+            document.addEventListener('touchend', onUp, { passive: true });
           }
 
           document.addEventListener('pointerdown', proxyPointerDown, { passive: true });
@@ -1404,6 +1430,14 @@ ui <- fluidPage(
         background-color: var(--bg);
       }
       body {
+        background-color: var(--bg);
+        background-image: url('circe-bg.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        background-attachment: fixed;
+      }
+      .app-shell {
         background-color: var(--bg);
         background-image: url('circe-bg.png');
         background-repeat: no-repeat;
@@ -2400,7 +2434,7 @@ output$tracer_ui <- renderUI({
     base_size <- max(8, min(12, width / 55))
     is_phone <- width < 420
     label_width <- if (is_phone) 16 else 20
-    label_radius <- if (is_phone) 1.24 else 1.34
+    label_radius <- if (is_phone) 1.32 else 1.42
     label_size <- if (is_phone) base_size * 0.13 else base_size * 0.176
     safe_plot <- function(scores_df, peer_points_df) {
       tryCatch(
