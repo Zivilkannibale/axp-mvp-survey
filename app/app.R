@@ -256,8 +256,8 @@ ui <- fluidPage(
       .irs--shiny .irs-line, .irs--shiny .irs-line::before, .irs--shiny .irs-bar, .irs--shiny .irs-bar::before, .irs--shiny .irs-handle { cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%236b3df0' d='M10 2V9.5H9V3C9 2.45 8.55 2 8 2S7 2.45 7 3V14.35L4.5 11.53C4.06 11.04 3.32 10.97 2.79 11.35C2.21 11.77 2.07 12.58 2.47 13.17L5.73 17.96C6.85 19.86 8.9 21 11.11 21H13C16.31 21 19 18.31 19 15V6C19 5.45 18.55 5 18 5S17 5.45 17 6V9.5H16V4C16 3.45 15.55 3 15 3S14 3.45 14 4V9.5H13V3C13 2.45 12.55 2 12 2S11 2.45 11 3V9.5H10V2Z'/%3E%3C/svg%3E\") 12 0, pointer !important; }
       .irs--shiny { height: 56px; clip-path: inset(100%); opacity: 0; transition: opacity 325ms ease, clip-path 0ms 0ms; }
       .irs--shiny.is-ready { clip-path: inset(0); opacity: 1; }
-      .irs--shiny:not(.is-ready),
-      .irs--shiny:not(.is-ready) * { visibility: hidden !important; pointer-events: none !important; }
+      .irs--shiny:not(.is-ready) { opacity: 0; }
+      .irs--shiny:not(.is-ready) * { pointer-events: none !important; }
       .irs--shiny.is-untouched .irs-bar,
       .irs--shiny.is-untouched .irs-bar-edge { opacity: 0.2; }
       .irs--shiny.is-untouched .irs-handle,
@@ -1139,6 +1139,7 @@ ui <- fluidPage(
             if (!line) return;
             var slider = line.closest('.irs');
             if (!slider) return;
+            if (e.preventDefault) e.preventDefault();
             var startVal = computeValueFromClientX(slider, e.clientX);
             if (startVal == null) return;
             updateSliderValue(slider, startVal);
@@ -1163,19 +1164,20 @@ ui <- fluidPage(
               if (!ev.touches || !ev.touches.length) return;
               onMove({ clientX: ev.touches[0].clientX });
             }
-            document.addEventListener('pointermove', onMove, { passive: true });
-            document.addEventListener('pointerup', onUp, { passive: true });
-            document.addEventListener('mousemove', onMove, { passive: true });
-            document.addEventListener('mouseup', onUp, { passive: true });
-            document.addEventListener('touchmove', onTouchMove, { passive: true });
-            document.addEventListener('touchend', onUp, { passive: true });
+            document.addEventListener('pointermove', onMove, { passive: false });
+            document.addEventListener('pointerup', onUp, { passive: false });
+            document.addEventListener('mousemove', onMove, { passive: false });
+            document.addEventListener('mouseup', onUp, { passive: false });
+            document.addEventListener('touchmove', onTouchMove, { passive: false });
+            document.addEventListener('touchend', onUp, { passive: false });
           }
 
-          document.addEventListener('pointerdown', proxyPointerDown, { passive: true });
-          document.addEventListener('mousedown', proxyPointerDown, { passive: true });
+          document.addEventListener('pointerdown', proxyPointerDown, { passive: false });
+          document.addEventListener('mousedown', proxyPointerDown, { passive: false });
           document.addEventListener('touchstart', function(ev) {
             if (!ev.touches || !ev.touches.length) return;
             var t = ev.touches[0];
+            if (ev.preventDefault) ev.preventDefault();
             proxyPointerDown({
               target: ev.target,
               clientX: t.clientX,
@@ -1183,7 +1185,7 @@ ui <- fluidPage(
               pointerType: 'touch',
               pointerId: 1
             });
-          }, { passive: true });
+          }, { passive: false });
 
           window.__axpSliderDragProxy = true;
         }
@@ -1443,25 +1445,10 @@ ui <- fluidPage(
       }
       body {
         background-color: var(--bg);
-        background-image: url('circe-bg.png');
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: cover;
-        background-attachment: fixed;
       }
       .app-shell {
+        min-height: 100vh;
         background-color: var(--bg);
-        background-image: url('circe-bg.png');
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: cover;
-        background-attachment: fixed;
-      }
-      @media (max-width: 900px) {
-        body,
-        .app-shell {
-          background-attachment: scroll;
-        }
       }
       body::before {
         content: '';
@@ -1474,10 +1461,6 @@ ui <- fluidPage(
         z-index: 0;
         pointer-events: none;
         transform: translateZ(0);
-        opacity: 0;
-        transition: opacity 200ms ease;
-      }
-      body.bg-ready::before {
         opacity: 1;
       }
     "))
@@ -2452,7 +2435,7 @@ output$tracer_ui <- renderUI({
     base_size <- max(8, min(12, width / 55))
     is_phone <- width < 420
     label_width <- if (is_phone) 16 else 20
-    label_radius <- if (is_phone) 1.38 else 1.5
+    label_radius <- if (is_phone) 1.44 else 1.58
     label_size <- if (is_phone) base_size * 0.13 else base_size * 0.176
     safe_plot <- function(scores_df, peer_points_df) {
       tryCatch(
