@@ -1104,19 +1104,31 @@ ui <- fluidPage(
           bootPct = document.getElementById('boot-progress-pct');
           appShell = document.querySelector('.app-shell');
 
-          var assets = ['circe-logo.png'];
+          var assets = ['circe-logo.png', 'circe-bg.png'];
           if (p6mEnabled) {
             assets.push('p6m-bg.js');
-          } else {
-            assets.push('circe-bg.png');
           }
           assets.forEach(function(src) {
             var link = document.createElement('link');
             link.rel = 'preload';
             link.as = src.endsWith('.js') ? 'script' : 'image';
             link.href = src;
+            if (link.as === 'image') {
+              link.fetchPriority = 'high';
+              link.setAttribute('fetchpriority', 'high');
+            }
             document.head.appendChild(link);
           });
+
+          if (!p6mEnabled) {
+            var bgImg = new Image();
+            bgImg.decoding = 'async';
+            bgImg.loading = 'eager';
+            bgImg.src = 'circe-bg.png';
+            bgImg.onload = function() {
+              document.body.classList.add('bg-ready');
+            };
+          }
 
           if (boot) boot.classList.remove('hidden');
           if (busy) busy.classList.add('hidden');
@@ -1329,6 +1341,11 @@ ui <- fluidPage(
         z-index: 0;
         pointer-events: none;
         transform: translateZ(0);
+        opacity: 0;
+        transition: opacity 200ms ease;
+      }
+      body.bg-ready::before {
+        opacity: 1;
       }
     "))
   ),

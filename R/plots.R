@@ -222,7 +222,7 @@ plot_scores_radar <- function(scores_df,
     ggplot2::geom_point(
       data = scores_df,
       ggplot2::aes(x = x, y = y, color = "Your results"),
-      size = 2.2
+      size = 1.1
     ) +
     ggplot2::geom_text(
       data = label_df,
@@ -241,7 +241,7 @@ plot_scores_radar <- function(scores_df,
     ggplot2::guides(
       color = ggplot2::guide_legend(
         title = NULL,
-        override.aes = list(size = 3, alpha = c(1, 0.35))
+        override.aes = list(size = c(1.1, 1.2), alpha = c(1, 0.35))
       )
     ) +
     ggplot2::theme_void(base_family = font_family) +
