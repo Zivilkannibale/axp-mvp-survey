@@ -1756,15 +1756,16 @@ server <- function(input, output, session) {
     ids2 <- slider_group_ids2()
     ids3 <- slider_group_ids3()
     ids4 <- slider_group_ids4()
+    snap <- slider_snapshot()
     session$onFlushed(function() {
       if (step == 8) {
-        restore_slider_values(ids1)
+        restore_slider_values(ids1, snap)
       } else if (step == 9) {
-        restore_slider_values(ids2)
+        restore_slider_values(ids2, snap)
       } else if (step == 10) {
-        restore_slider_values(ids3)
+        restore_slider_values(ids3, snap)
       } else if (step == 11) {
-        restore_slider_values(ids4)
+        restore_slider_values(ids4, snap)
       }
     }, once = TRUE)
   }, ignoreInit = TRUE)
@@ -2112,6 +2113,7 @@ tracer_ui_cached <- reactiveVal(NULL)
   slider_group_ids3 <- reactiveVal(character(0))
   slider_group_ids4 <- reactiveVal(character(0))
   slider_values <- reactiveValues()
+  slider_snapshot <- reactiveVal(list())
 observeEvent(questionnaire_df(), {
   df <- questionnaire_df()
   df_questions <- df[df$type != "experience_tracer", ]
@@ -2176,13 +2178,14 @@ observeEvent(questionnaire_df(), {
         slider_values[[id]] <- val
       }
     }
+    slider_snapshot(reactiveValuesToList(slider_values))
   })
 
-  restore_slider_values <- function(ids) {
+  restore_slider_values <- function(ids, snapshot) {
     ids <- ids[!is.na(ids) & ids != ""]
     if (length(ids) == 0) return()
     for (id in ids) {
-      val <- slider_values[[id]]
+      val <- snapshot[[id]]
       if (!is.null(val) && !is.na(val) && val != "") {
         updateSliderInput(session, id, value = val)
       }
