@@ -1163,6 +1163,8 @@ ui <- fluidPage(
             dragState.active = true;
             dragState.slider = slider;
             dragState.pointerId = e.pointerId || null;
+            window.__axpSliderActive = true;
+            window.__axpSliderLastValue = startVal;
           }
 
           function onGlobalMove(ev) {
@@ -1170,12 +1172,14 @@ ui <- fluidPage(
             var v = computeValueFromClientX(dragState.slider, ev.clientX);
             if (v == null) return;
             updateSliderValue(dragState.slider, v);
+            window.__axpSliderLastValue = v;
           }
 
           function onGlobalUp() {
             dragState.active = false;
             dragState.slider = null;
             dragState.pointerId = null;
+            window.__axpSliderActive = false;
           }
 
           document.addEventListener('pointerdown', proxyPointerDown, { passive: false, capture: true });
