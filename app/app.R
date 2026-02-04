@@ -1752,18 +1752,19 @@ server <- function(input, output, session) {
 
   observeEvent(current_step(), {
     step <- current_step()
+    ids1 <- slider_group_ids1()
+    ids2 <- slider_group_ids2()
+    ids3 <- slider_group_ids3()
+    ids4 <- slider_group_ids4()
     session$onFlushed(function() {
       if (step == 8) {
-        restore_slider_values(slider_group_ids1())
+        restore_slider_values(ids1)
       } else if (step == 9) {
-        restore_slider_values(slider_group_ids2())
+        restore_slider_values(ids2)
       } else if (step == 10) {
-        restore_slider_values(slider_group_ids3())
+        restore_slider_values(ids3)
       } else if (step == 11) {
-        restore_slider_values(slider_group_ids4())
-      }
-      if (step >= 8 && step <= 11 && is.function(updateSliderNextState)) {
-        updateSliderNextState()
+        restore_slider_values(ids4)
       }
     }, once = TRUE)
   }, ignoreInit = TRUE)
