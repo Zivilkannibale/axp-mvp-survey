@@ -1,4 +1,4 @@
-resolve_root_dir <- function() {
+﻿resolve_root_dir <- function() {
   wd <- getwd()
   if (basename(wd) == "app") {
     normalizePath(file.path(wd, ".."))
@@ -1393,11 +1393,11 @@ ui <- fluidPage(
             if (target.closest) {
               var reloadBtn = target.closest('#reload_questionnaire');
               if (reloadBtn) {
-                setButtonLoading('reload_questionnaire', true, 'Reloading...');
+                setButtonLoading('reload_questionnaire', true, reloadBtn.dataset.loadingLabel || '');
               }
               var submitBtn = target.closest('#submit');
               if (submitBtn) {
-                setButtonLoading('submit', true, 'Revealing...');
+                setButtonLoading('submit', true, submitBtn.dataset.loadingLabel || '');
               }
             }
           }, true);
@@ -1484,8 +1484,8 @@ ui <- fluidPage(
           )
         )
       ),
-      div(class = "app-eyebrow", "AXP survey"),
-      div(class = "app-title", "Participant Questionnaire"),
+      div(class = "app-eyebrow", textOutput("app_eyebrow")),
+      div(class = "app-title", textOutput("app_title")),
       conditionalPanel(
         condition = "output.showExperienceHeader == 'TRUE'",
         div(class = "prep-eyebrow experience-header", textOutput("experience_header_persistent"))
@@ -1497,6 +1497,142 @@ ui <- fluidPage(
   )
 
 server <- function(input, output, session) {
+  selected_language <- reactiveVal("en")
+  translations <- list(
+    en = list(
+      language_title = "Choose your language",
+      language_label = "Language",
+      language_continue = "Continue",
+      app_eyebrow = "AXP survey",
+      app_title = "Participant Questionnaire",
+      intro_title = "Intro",
+      intro_body_1 = "This survey can be sourced from a local CSV file or from a shared Google Sheet (open sheet). Choose whichever workflow is easiest for you.",
+      intro_body_2 = "Tabs can represent versions (e.g., v0.2, v0.3) or different languages. Set the default tab in .Renviron, or type a tab name below and press Reload.",
+      intro_body_3 = "Recommended workflow: develop locally using the CSV, run the app and validate changes, then push to the repo. After the server pulls, upload the CSV to Google Drive, open it as a Google Sheet, and copy the full sheet into a new tab in the shared survey sheet that the server's service account can access.",
+      intro_list_1 = "Local CSV: edit docs/sample_questionnaire.csv for quick, offline changes on this machine.",
+      intro_list_2 = "Google Sheets: edit the shared sheet so collaborators can update content without touching code.",
+      sheet_tab_label = "Sheet tab (optional)",
+      reload_questionnaire = "Reload questionnaire",
+      reloading = "Reloading...",
+      start = "Start",
+      see_results = "See all my results",
+      before_start = "Before we start",
+      consent_1 = "The Altered eXperience Project is an effort to organize and systematize our knowledge about human subjective experience during different states of consciousness.",
+      consent_2 = "Some of these states are very different from our ordinary experience and different people experience these states in their own particular ways. That is why your participation is very important.",
+      consent_3 = "In this experiment we’re focusing on drug induced altered states with cannabis, psilocybin, alcohol and MDMA. If you agree to participate, you will be asked questions about one of your own altered experiences. It will take 5–10 minutes.",
+      consent_4 = "Every experience you share will be fully anonymous and all data openly available for researchers all over the world. Once you finish, we will show you how your experience compares to other people’s experiences.",
+      consent_agree = "I agree to partake",
+      visualize_title = "Visualize your experience",
+      visualize_1 = "Think of a time when you took either cannabis, psilocybin, alcohol or MDMA and visualize your experience.",
+      visualize_2 = "Focus on one single, altered state experience. Visualize it. Think of where you were, the time it was, the sounds and smells around you.",
+      visualize_3 = "Try recapturing the feel of your whole body and mind entering the experience. Once you have focused on that single experience, we can move on.",
+      back = "Back",
+      continue = "Continue",
+      try_tracer = "Try Experience Tracer (Beta)",
+      back_to_feedback = "Back to Feedback",
+      feedback = "Feedback",
+      reveal_feedback = "Reveal my feedback",
+      revealing = "Revealing...",
+      tracer_title = "Experience Tracer",
+      beta_badge = "BETA / EXPERIMENTAL",
+      loading_tracer = "Loading experience tracer...",
+      no_tracer = "No experience tracer items configured.",
+      how_to_read = "How to read this chart:",
+      how_to_read_body = " The purple shape shows your scores from this submission. Farther from the center means a stronger reported experience.",
+      peer_note_real = " The gray dots summarize how other people tended to respond (comparison data are still mock).",
+      peer_note_mock = " The chart and gray dots are mock data for now.",
+      plot_real = "Plot uses your submitted responses.",
+      plot_mock = "Plot is using mock data (dev mode or no submission yet).",
+      preparing_feedback = "Preparing feedback…",
+      submission_ok = "Submission stored successfully.",
+      submission_db_fail = "Feedback generated (DB write failed: %s)",
+      submission_no_db = "Feedback generated (DB not configured).",
+      validation_missing = "Missing required items: %s",
+      validation_consent = "Consent is required before continuing.",
+      validation_slider = "Please move each slider before continuing.",
+      validation_substance = "Please select a substance to continue.",
+      validation_dose = "Please select a dose to continue.",
+      experience_header_default = "Each experience is unique",
+      prep_title = "Your feedback is ready",
+      tracer_intro = "Draw a curve representing your subjective experience intensity over time. This feature is experimental and your trace will not be saved yet.",
+      animated_bg = "Animated p6m waves",
+      load_default = "Loaded sheet: configured default tab (%s).",
+      load_named = "Loaded sheet: %s (%s).",
+      load_failed = "Sheet load failed (%s): %s"
+    ),
+    de = list(
+      language_title = "Sprache auswählen",
+      language_label = "Sprache",
+      language_continue = "Weiter",
+      app_eyebrow = "AXP-Umfrage",
+      app_title = "Teilnehmerfragebogen",
+      intro_title = "Einführung",
+      intro_body_1 = "Dieser Fragebogen kann aus einer lokalen CSV-Datei oder aus einem gemeinsamen Google Sheet geladen werden (Sheet öffnen). Wähle den einfachsten Workflow.",
+      intro_body_2 = "Tabs können Versionen (z. B. v0.2, v0.3) oder verschiedene Sprachen darstellen. Setze den Standard-Tab in .Renviron oder gib unten einen Tab-Namen ein und klicke auf Neu laden.",
+      intro_body_3 = "Empfehlung: Lokal mit der CSV entwickeln, App starten und prüfen, dann ins Repo pushen. Nach dem Server-Pull die CSV in Google Drive hochladen, als Google Sheet öffnen und in einen neuen Tab kopieren, auf den das Service-Konto Zugriff hat.",
+      intro_list_1 = "Lokale CSV: docs/sample_questionnaire.csv bearbeiten für schnelle Offline-Änderungen.",
+      intro_list_2 = "Google Sheets: Das geteilte Sheet bearbeiten, damit Mitarbeitende Inhalte ohne Code-Änderung aktualisieren können.",
+      sheet_tab_label = "Sheet-Tab (optional)",
+      reload_questionnaire = "Fragebogen neu laden",
+      reloading = "Wird geladen...",
+      start = "Start",
+      see_results = "Alle Ergebnisse ansehen",
+      before_start = "Bevor wir starten",
+      consent_1 = "Das Altered eXperience Project organisiert und systematisiert Wissen über subjektive Erfahrungen in verschiedenen Bewusstseinszuständen.",
+      consent_2 = "Einige dieser Zustände unterscheiden sich stark von der normalen Erfahrung, und jede Person erlebt sie auf eigene Weise. Deshalb ist deine Teilnahme wichtig.",
+      consent_3 = "In diesem Experiment fokussieren wir uns auf substanzinduzierte veränderte Zustände mit Cannabis, Psilocybin, Alkohol und MDMA. Wenn du zustimmst, beantworten wir Fragen zu einer deiner Erfahrungen. Das dauert 5–10 Minuten.",
+      consent_4 = "Alle Erfahrungen bleiben anonym, und die Daten werden offen für Forschende bereitgestellt. Am Ende zeigen wir dir, wie deine Erfahrung im Vergleich zu anderen abschneidet.",
+      consent_agree = "Ich stimme der Teilnahme zu",
+      visualize_title = "Visualisiere deine Erfahrung",
+      visualize_1 = "Denke an eine Erfahrung mit Cannabis, Psilocybin, Alkohol oder MDMA und visualisiere sie.",
+      visualize_2 = "Fokussiere eine einzelne, veränderte Erfahrung. Stelle sie dir vor: Ort, Zeit, Geräusche und Gerüche.",
+      visualize_3 = "Versuche das Gefühl von Körper und Geist beim Eintritt in die Erfahrung zu reaktivieren. Dann können wir fortfahren.",
+      back = "Zurück",
+      continue = "Weiter",
+      try_tracer = "Experience Tracer ausprobieren (Beta)",
+      back_to_feedback = "Zurück zum Feedback",
+      feedback = "Feedback",
+      reveal_feedback = "Mein Feedback anzeigen",
+      revealing = "Wird angezeigt...",
+      tracer_title = "Experience Tracer",
+      beta_badge = "BETA / EXPERIMENTELL",
+      loading_tracer = "Experience Tracer wird geladen...",
+      no_tracer = "Keine Experience-Tracer-Items konfiguriert.",
+      how_to_read = "So liest du dieses Diagramm:",
+      how_to_read_body = " Die violette Form zeigt deine Werte aus dieser Eingabe. Weiter außen bedeutet eine stärkere berichtete Erfahrung.",
+      peer_note_real = " Die grauen Punkte zeigen, wie andere im Durchschnitt geantwortet haben (Vergleichsdaten sind noch Mock).",
+      peer_note_mock = " Diagramm und graue Punkte sind aktuell Mock-Daten.",
+      plot_real = "Diagramm nutzt deine eingereichten Antworten.",
+      plot_mock = "Diagramm nutzt Mock-Daten (Dev-Mode oder keine Einreichung).",
+      preparing_feedback = "Feedback wird vorbereitet…",
+      submission_ok = "Einreichung erfolgreich gespeichert.",
+      submission_db_fail = "Feedback erzeugt (DB-Schreiben fehlgeschlagen: %s)",
+      submission_no_db = "Feedback erzeugt (DB nicht konfiguriert).",
+      validation_missing = "Fehlende Pflichtangaben: %s",
+      validation_consent = "Zustimmung ist erforderlich, um fortzufahren.",
+      validation_slider = "Bitte bewege jeden Slider, bevor du fortfährst.",
+      validation_substance = "Bitte wähle eine Substanz, um fortzufahren.",
+      validation_dose = "Bitte wähle eine Dosis, um fortzufahren.",
+      experience_header_default = "Jede Erfahrung ist einzigartig",
+      prep_title = "Dein Feedback ist bereit",
+      tracer_intro = "Zeichne eine Kurve, die deine subjektive Intensität über die Zeit darstellt. Diese Funktion ist experimentell und wird noch nicht gespeichert.",
+      animated_bg = "Animierte p6m-Wellen",
+      load_default = "Sheet geladen: Standard-Tab (%s).",
+      load_named = "Sheet geladen: %s (%s).",
+      load_failed = "Sheet-Laden fehlgeschlagen (%s): %s"
+    )
+  )
+  t <- function(key, ...) {
+    lang <- selected_language()
+    entry <- translations[[lang]][[key]]
+    if (is.null(entry)) entry <- translations$en[[key]]
+    if (is.null(entry)) entry <- key
+    if (length(list(...)) > 0) {
+      return(sprintf(entry, ...))
+    }
+    entry
+  }
+
   cfg <- get_config(required = FALSE)
   boot_progress <- function(pct) {
     session$sendCustomMessage("bootProgress", list(pct = pct))
@@ -1506,12 +1642,12 @@ server <- function(input, output, session) {
   format_load_status <- function(sheet_name, is_error = FALSE, message = NULL) {
     timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
     if (is_error) {
-      return(paste0("Sheet load failed (", timestamp, "): ", message))
+      return(t("load_failed", timestamp, message))
     }
     if (is.null(sheet_name) || sheet_name == "") {
-      return(paste0("Loaded sheet: configured default tab (", timestamp, ")."))
+      return(t("load_default", timestamp))
     }
-    paste0("Loaded sheet: ", sheet_name, " (", timestamp, ").")
+    t("load_named", sheet_name, timestamp)
   }
 
   update_questionnaire <- function(sheet_name_override = NULL) {
@@ -1565,19 +1701,21 @@ server <- function(input, output, session) {
   instrument_version <- reactiveVal(initial_df$instrument_version[1])
   language <- reactiveVal(initial_df$language[1])
   load_status <- reactiveVal(initial_status)
-  current_step <- reactiveVal(1)
+  current_step <- reactiveVal(0)
   navigation_error <- reactiveVal("")
   validation_error <- reactiveVal("")
   progress_start_step <- 1
   progress_end_step <- 14  # Tracer moved to optional step 15
 
   observeEvent(input$reload_questionnaire, {
-    session$sendCustomMessage("buttonLoading", list(id = "reload_questionnaire", loading = TRUE, text = "Reloading..."))
+    session$sendCustomMessage("buttonLoading", list(id = "reload_questionnaire", loading = TRUE, text = t("reloading")))
     sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
     update_questionnaire(sheet_name_override = sheet_name)
     session$sendCustomMessage("buttonLoading", list(id = "reload_questionnaire", loading = FALSE))
   })
 
+  output$app_eyebrow <- renderText(t("app_eyebrow"))
+  output$app_title <- renderText(t("app_title"))
   output$load_status <- renderText(load_status())
   output$showExperienceHeader <- renderText({
     step <- current_step()
@@ -1645,14 +1783,23 @@ server <- function(input, output, session) {
 
   observeEvent(input$next_step, {
     step <- current_step()
-    if (step == 1) {
+    if (step == 0) {
+      lang <- if (is.null(input$language_choice) || input$language_choice == "") "en" else input$language_choice
+      selected_language(lang)
+      sheet_override <- if (lang == "de") "DE" else "EN"
+      update_questionnaire(sheet_name_override = sheet_override)
+      validation_error("")
+      navigation_error("")
+      current_step(1)
+      show_transition_busy()
+    } else if (step == 1) {
       validation_error("")
       navigation_error("")
       current_step(2)
       show_transition_busy()
     } else if (step == 2) {
       if (!isTRUE(input$consent)) {
-        navigation_error("Consent is required before continuing.")
+        navigation_error(t("validation_consent"))
       } else {
         validation_error("")
         navigation_error("")
@@ -1666,7 +1813,7 @@ server <- function(input, output, session) {
       show_transition_busy()
     } else if (step == 4) {
       if (is.null(input$q0) || input$q0 == "") {
-        validation_error("Please select a substance to continue.")
+        validation_error(t("validation_substance"))
       } else {
         validation_error("")
         navigation_error("")
@@ -1675,7 +1822,7 @@ server <- function(input, output, session) {
       }
     } else if (step == 5) {
       if (is.null(input$q1) || input$q1 == "") {
-        validation_error("Please select a dose to continue.")
+        validation_error(t("validation_dose"))
       } else {
         validation_error("")
         navigation_error("")
@@ -1694,7 +1841,7 @@ server <- function(input, output, session) {
       show_transition_busy()
     } else if (step == 8) {
       if (!slider_group_complete(slider_group_ids1())) {
-        validation_error("Please move each slider before continuing.")
+        validation_error(t("validation_slider"))
       } else {
         validation_error("")
         navigation_error("")
@@ -1703,7 +1850,7 @@ server <- function(input, output, session) {
       }
     } else if (step == 9) {
       if (!slider_group_complete(slider_group_ids2())) {
-        validation_error("Please move each slider before continuing.")
+        validation_error(t("validation_slider"))
       } else {
         validation_error("")
         navigation_error("")
@@ -1712,7 +1859,7 @@ server <- function(input, output, session) {
       }
     } else if (step == 10) {
       if (!slider_group_complete(slider_group_ids3())) {
-        validation_error("Please move each slider before continuing.")
+        validation_error(t("validation_slider"))
       } else {
         validation_error("")
         navigation_error("")
@@ -1721,7 +1868,7 @@ server <- function(input, output, session) {
       }
     } else if (step == 11) {
       if (!slider_group_complete(slider_group_ids4())) {
-        validation_error("Please move each slider before continuing.")
+        validation_error(t("validation_slider"))
       } else {
         validation_error("")
         navigation_error("")
@@ -1862,7 +2009,7 @@ server <- function(input, output, session) {
     drug <- selected_drug()
     dose <- selected_dose()
     if (is.null(drug) || drug == "") {
-      drug <- "Each experience is unique"
+      drug <- t("experience_header_default")
     }
     parts <- c(drug, if (include_dose && !is.null(dose) && dose != "") dose else NULL)
     toupper(paste(parts, collapse = " - "))
@@ -1877,6 +2024,32 @@ server <- function(input, output, session) {
   output$page_ui <- renderUI({
     step <- current_step()
 
+    if (step == 0) {
+      return(tagList(
+        div(
+          class = "app-card",
+          div(
+            class = "intro-panel",
+            div(
+              class = "intro-center",
+              div(class = "intro-title", t("language_title")),
+              div(class = "intro-body"),
+              div(
+                class = "intro-controls",
+                selectInput(
+                  "language_choice",
+                  t("language_label"),
+                  choices = c("English" = "en", "Deutsch" = "de"),
+                  selected = selected_language()
+                ),
+                actionButton("next_step", t("language_continue"), class = "intro-start")
+              )
+            )
+          )
+        )
+      ))
+    }
+
     if (step == 1) {
       return(tagList(
         div(
@@ -1885,40 +2058,36 @@ server <- function(input, output, session) {
             class = "intro-panel",
             div(
               class = "intro-center",
-              div(class = "intro-title", "Intro"),
+              div(class = "intro-title", t("intro_title")),
               div(
                 class = "intro-body",
-                p(
-                  "This survey can be sourced from a local CSV file or from a shared Google Sheet (",
-                  tags$a(
-                    href = "https://docs.google.com/spreadsheets/d/1o2eCjyVRHiIYzVaQ8Z4wAA0XmOwGKWfTj0d36wfw_jc/edit?usp=sharing",
-                    target = "_blank",
-                    rel = "noopener",
-                    "open sheet"
-                  ),
-                  "). Choose whichever workflow is easiest for you."
-                ),
+                p(t("intro_body_1")),
                 tags$ul(
-                  tags$li("Local CSV: edit docs/sample_questionnaire.csv for quick, offline changes on this machine."),
-                  tags$li("Google Sheets: edit the shared sheet so collaborators can update content without touching code.")
+                  tags$li(t("intro_list_1")),
+                  tags$li(t("intro_list_2"))
                 ),
-                p("Tabs can represent versions (e.g., v0.2, v0.3) or different languages. Set the default tab in .Renviron, or type a tab name below and press Reload."),
-                p("Recommended workflow: develop locally using the CSV, run the app and validate changes, then push to the repo. After the server pulls, upload the CSV to Google Drive, open it as a Google Sheet, and copy the full sheet into a new tab in the shared survey sheet that the server’s service account can access.")
+                p(t("intro_body_2")),
+                p(t("intro_body_3"))
               )
             ),
-            if (P6M_ENABLED) checkboxInput("animated_bg", "Animated p6m waves", value = P6M_ANIMATED_DEFAULT),
+            if (P6M_ENABLED) checkboxInput("animated_bg", t("animated_bg"), value = P6M_ANIMATED_DEFAULT),
             div(
               class = "intro-controls",
-              textInput("sheet_name_override", "Sheet tab (optional)", value = ""),
-              actionButton("reload_questionnaire", "Reload questionnaire", class = "intro-reload"),
+              textInput("sheet_name_override", t("sheet_tab_label"), value = ""),
+              actionButton(
+                "reload_questionnaire",
+                t("reload_questionnaire"),
+                class = "intro-reload",
+                `data-loading-label` = t("reloading")
+              ),
               div(class = "intro-status", textOutput("load_status"))
             )
           )
         ),
         div(
           class = "nav-actions",
-          actionButton("next_step", "Start", class = "intro-start"),
-          tags$button(type = "button", class = "intro-results", "See all my results")
+          actionButton("next_step", t("start"), class = "intro-start"),
+          tags$button(type = "button", class = "intro-results", t("see_results"))
         )
       ))
     }
@@ -1927,13 +2096,13 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Before we start"),
+          h3(t("before_start")),
           div(
             class = "consent-body",
-            p("The Altered eXperience Project is an effort to organize and systematize our knowledge about human subjective experience during different states of consciousness."),
-            p("Some of these states are very different from our ordinary experience and different people experience these states in their own particular ways. That is why your participation is very important."),
-            p("In this experiment we’re focusing on drug induced altered states with cannabis, psilocybin, alcohol and MDMA. If you agree to participate, you will be asked questions about one of your own altered experiences. It will take 5–10 minutes."),
-            p("Every experience you share will be fully anonymous and all data openly available for researchers all over the world. Once you finish, we will show you how your experience compares to other people’s experiences.")
+            p(t("consent_1")),
+            p(t("consent_2")),
+            p(t("consent_3")),
+            p(t("consent_4"))
           ),
           div(
             class = "consent-checkbox",
@@ -1941,15 +2110,15 @@ server <- function(input, output, session) {
               class = "consent-pill",
               tags$input(type = "checkbox", id = "consent", class = "shiny-input-checkbox"),
               tags$span(class = "consent-indicator"),
-              tags$span("I agree to partake")
+              tags$span(t("consent_agree"))
             )
           ),
           div(class = "error-text", textOutput("navigation_error"))
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -1958,18 +2127,18 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Visualize your experience"),
+          h3(t("visualize_title")),
           div(
             class = "prep-body",
-            p("Think of a time when you took either cannabis, psilocybin, alcohol or MDMA and visualize your experience."),
-            p("Focus on one single, altered state experience. Visualize it. Think of where you were, the time it was, the sounds and smells around you."),
-            p("Try recapturing the feel of your whole body and mind entering the experience. Once you have focused on that single experience, we can move on.")
+            p(t("visualize_1")),
+            p(t("visualize_2")),
+            p(t("visualize_3"))
           )
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -1982,8 +2151,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -1997,8 +2166,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2013,8 +2182,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2031,8 +2200,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2048,8 +2217,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2065,8 +2234,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2082,8 +2251,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2099,8 +2268,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2115,8 +2284,8 @@ server <- function(input, output, session) {
         ),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("next_step", "Continue")
+          actionButton("prev_step", t("back")),
+          actionButton("next_step", t("continue"))
         )
       ))
     }
@@ -2127,7 +2296,7 @@ server <- function(input, output, session) {
         div(
           class = "app-card reward-card",
           div(class = "reward-eyebrow", "Final reveal"),
-          h3(class = "reward-title", "Your feedback is ready"),
+          h3(class = "reward-title", t("prep_title")),
           div(
             class = "reward-body",
             p("We are about to generate a personalized snapshot of your experience and compare it with others."),
@@ -2137,8 +2306,12 @@ server <- function(input, output, session) {
         div(class = "error-text", textOutput("validation_error")),
         div(
           class = "nav-actions",
-          actionButton("prev_step", "Back"),
-          actionButton("submit", "Reveal my feedback")
+          actionButton("prev_step", t("back")),
+          actionButton(
+            "submit",
+            t("reveal_feedback"),
+            `data-loading-label` = t("revealing")
+          )
         )
       ))
     }
@@ -2153,15 +2326,15 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card tracer-experimental",
-          div(class = "beta-badge", "BETA / EXPERIMENTAL"),
-          h3("Experience Tracer"),
-          p(class = "tracer-intro", "Draw a curve representing your subjective experience intensity over time. This feature is experimental and your trace will not be saved yet."),
+          div(class = "beta-badge", t("beta_badge")),
+          h3(t("tracer_title")),
+          p(class = "tracer-intro", t("tracer_intro")),
           uiOutput("tracer_ui"),
           div(class = "error-text", textOutput("validation_error"))
         ),
         div(
           class = "nav-actions",
-          actionButton("back_to_feedback", "Back to Feedback")
+          actionButton("back_to_feedback", t("back_to_feedback"))
         )
       ))
     }
@@ -2338,9 +2511,9 @@ output$questionnaire_ui_free <- renderUI({
 output$tracer_ui <- renderUI({
   cached <- tracer_ui_cached()
   if (is.null(cached)) {
-    div(class = "muted", "Loading experience tracer...")
+    div(class = "muted", t("loading_tracer"))
   } else if (length(cached) == 0) {
-    div(class = "muted", "No experience tracer items configured.")
+    div(class = "muted", t("no_tracer"))
   } else {
     cached
   }
@@ -2386,14 +2559,19 @@ output$tracer_ui <- renderUI({
     status_line <- submission_status()
     scores_ready <- nrow(latest_scores()) > 0
     plot_source <- if (scores_ready) {
-      "Plot uses your submitted responses."
+      t("plot_real")
     } else {
-      "Plot is using mock data (dev mode or no submission yet)."
+      t("plot_mock")
+    }
+    peer_note <- if (scores_ready) {
+      t("peer_note_real")
+    } else {
+      t("peer_note_mock")
     }
     status_text <- if (status_line != "") {
       status_line
     } else if (!scores_ready) {
-      "Preparing feedback…"
+      t("preparing_feedback")
     } else {
       ""
     }
@@ -2401,10 +2579,9 @@ output$tracer_ui <- renderUI({
     tagList(
       p(
         class = "feedback-note feedback-note--compact",
-        tags$strong("How to read this chart:"),
-        " The purple shape shows your scores from this submission.",
-        " Farther from the center means a stronger reported experience.",
-        " The gray dots summarize how other people tended to respond (mock data for now)."
+        tags$strong(t("how_to_read")),
+        t("how_to_read_body"),
+        peer_note
       ),
       p(class = "feedback-note", plot_source),
       if (status_text != "") p(class = "muted", status_text)
@@ -2417,8 +2594,8 @@ output$tracer_ui <- renderUI({
     nav_actions <- if (step == 14) {
       div(
         class = "nav-actions",
-        actionButton("prev_step", "Back"),
-        actionButton("try_tracer", "Try Experience Tracer (Beta)", class = "btn-secondary")
+        actionButton("prev_step", t("back")),
+        actionButton("try_tracer", t("try_tracer"), class = "btn-secondary")
       )
     } else {
       NULL
@@ -2428,7 +2605,7 @@ output$tracer_ui <- renderUI({
       tagList(
         div(
           class = "app-card",
-          h3("Feedback"),
+          h3(t("feedback")),
           uiOutput("feedback_summary"),
           plotOutput("radar_plot", height = "540px", width = "100%"),
           NULL
@@ -2468,9 +2645,9 @@ output$tracer_ui <- renderUI({
     }
     base_size <- max(8, min(12, width / 55))
     is_phone <- width < 420
-    label_width <- if (is_phone) 16 else 20
-    label_radius <- if (is_phone) 1.44 else 1.58
-    label_size <- if (is_phone) base_size * 0.13 else base_size * 0.176
+    label_width <- if (is_phone) 14 else 20
+    label_radius <- if (is_phone) 1.9 else 1.58
+    label_size <- if (is_phone) base_size * 0.12 else base_size * 0.176
     safe_plot <- function(scores_df, peer_points_df) {
       tryCatch(
         plot_scores_radar(
@@ -2510,12 +2687,12 @@ output$tracer_ui <- renderUI({
   outputOptions(output, "questionnaire_ui_free", suspendWhenHidden = FALSE)
 
   observeEvent(input$submit, {
-    session$sendCustomMessage("buttonLoading", list(id = "submit", loading = TRUE, text = "Revealing..."))
+    session$sendCustomMessage("buttonLoading", list(id = "submit", loading = TRUE, text = t("revealing")))
     validation_error("")
     submission_status("")
 
     if (!isTRUE(input$consent)) {
-      validation_error("Consent is required before continuing.")
+      validation_error(t("validation_consent"))
       session$sendCustomMessage("buttonLoading", list(id = "submit", loading = FALSE))
       return()
     }
@@ -2539,7 +2716,7 @@ output$tracer_ui <- renderUI({
     }
 
     if (length(missing) > 0) {
-      validation_error(paste0("Missing required items: ", paste(missing, collapse = ", ")))
+      validation_error(sprintf(t("validation_missing"), paste(missing, collapse = ", ")))
       session$sendCustomMessage("buttonLoading", list(id = "submit", loading = FALSE))
       return()
     }
@@ -2605,13 +2782,13 @@ output$tracer_ui <- renderUI({
           db_insert_scores(conn, submission_id, scores_df)
         })
 
-        submission_status("Submission stored successfully.")
+        submission_status(t("submission_ok"))
       }, error = function(e) {
         message("Database error: ", conditionMessage(e))
-        submission_status(paste0("Feedback generated (DB write failed: ", conditionMessage(e), ")"))
+        submission_status(sprintf(t("submission_db_fail"), conditionMessage(e)))
       })
     } else {
-      submission_status("Feedback generated (DB not configured).")
+      submission_status(t("submission_no_db"))
     }
 
     latest_scores(scores_df)
@@ -2634,3 +2811,10 @@ output$tracer_ui <- renderUI({
 }
 
 shinyApp(ui, server)
+
+
+
+
+
+
+

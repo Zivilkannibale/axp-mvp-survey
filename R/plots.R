@@ -158,8 +158,9 @@ plot_scores_radar <- function(scores_df,
     theta = label_xy$theta
   )
   label_df$label <- wrap_two_lines(label_df$scale_id, width = label_width)
-  label_df$hjust <- 0.5
-  label_df$vjust <- 0.5
+  # Adjust alignment so labels sit outside the ring and overlap less.
+  label_df$hjust <- ifelse(cos(label_df$theta) > 0.2, 0, ifelse(cos(label_df$theta) < -0.2, 1, 0.5))
+  label_df$vjust <- ifelse(sin(label_df$theta) > 0.25, 0, ifelse(sin(label_df$theta) < -0.25, 1, 0.5))
 
   grid_color <- "#d0d6e4"
   text_color <- "#3f4250"
