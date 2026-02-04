@@ -130,6 +130,20 @@ GOOGLE_SHEET_AUTH_EMAIL=...
 GOOGLE_SHEET_USE_OAUTH=false
 ```
 
+**Notes (server lessons learned):**
+
+- `GOOGLE_SHEET_AUTH_JSON` must point to the **actual** JSON file path on the server
+  (e.g. `/srv/shiny-server/axp-mvp-survey/secret/axp-mvp-3ec693c04c81.json`).
+- The service account email **must** be shared on the Google Sheet with at least Viewer access.
+- The `googlesheets4` package must be installed in the server renv library:
+  `sudo -u shiny Rscript -e "renv::install('googlesheets4')"`
+
+**Verification command (use single quotes to avoid shell `$` expansion):**
+
+```bash
+sudo -u shiny Rscript -e 'readRenviron("/srv/shiny-server/axp-mvp-survey/app/.Renviron"); source("/srv/shiny-server/axp-mvp-survey/R/questionnaire_loader.R"); cfg <- list(GOOGLE_SHEET_ID=Sys.getenv("GOOGLE_SHEET_ID"), GOOGLE_SHEET_SHEETNAME=Sys.getenv("GOOGLE_SHEET_SHEETNAME"), GOOGLE_SHEET_AUTH_JSON=Sys.getenv("GOOGLE_SHEET_AUTH_JSON"), GOOGLE_SHEET_AUTH_EMAIL=Sys.getenv("GOOGLE_SHEET_AUTH_EMAIL"), GOOGLE_SHEET_USE_OAUTH=Sys.getenv("GOOGLE_SHEET_USE_OAUTH")); print(cfg); auth_google_sheets(cfg); df <- googlesheets4::read_sheet(ss=cfg$GOOGLE_SHEET_ID, sheet=cfg$GOOGLE_SHEET_SHEETNAME); print(dim(df))'
+```
+
 **Secure the file:**
 
 ```bash
