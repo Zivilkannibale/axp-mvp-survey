@@ -1097,100 +1097,6 @@ ui <- fluidPage(
         }
         window.__axpEnsureSlidersReady = ensureSlidersReady;
 
-        function installSliderDragProxy() {
-          if (window.__axpSliderDragProxy) return;
-          var dragState = { active: false, slider: null, pointerId: null };
-          function getRangeInput(slider) {
-            if (!slider) return null;
-            var container = slider.closest('.shiny-input-container');
-            if (!container) return null;
-            return container.querySelector(\"input.js-range-slider, input[type='text'], input[type='hidden'], input[type='range']\");
-          }
-
-          function computeValueFromClientX(slider, clientX) {
-            var line = slider.querySelector('.irs-line');
-            if (!line) return null;
-            var rect = line.getBoundingClientRect();
-            var pct = (clientX - rect.left) / rect.width;
-            pct = Math.max(0, Math.min(1, pct));
-            var input = getRangeInput(slider);
-            var instance = input ? $(input).data('ionRangeSlider') : null;
-            if (!instance) return null;
-            var min = instance.options.min;
-            var max = instance.options.max;
-            var step = instance.options.step || 1;
-            var raw = min + pct * (max - min);
-            var stepped = Math.round(raw / step) * step;
-            return Math.max(min, Math.min(max, stepped));
-          }
-
-          function updateSliderValue(slider, value) {
-            var input = getRangeInput(slider);
-            if (!input) return;
-            var instance = $(input).data('ionRangeSlider');
-            if (!instance) return;
-            instance.update({ from: value });
-            $(input).trigger('change');
-            slider.classList.add('is-ready');
-          }
-
-          function proxyPointerDown(e) {
-            var target = e.target;
-            if (!target) return;
-            var slider = target.closest('.irs');
-            if (!slider) return;
-            var handle = slider.querySelector('.irs-handle');
-            var line = target.closest('.irs-line, .irs-bar, .irs-bar-edge') || slider.querySelector('.irs-line');
-            if (!line) return;
-            if (e.preventDefault) e.preventDefault();
-            if (e.stopPropagation) e.stopPropagation();
-            if (handle) {
-              var hRect = handle.getBoundingClientRect();
-              var hx = hRect.left + hRect.width / 2;
-              var hy = hRect.top + hRect.height / 2;
-              var dx = e.clientX - hx;
-              var dy = e.clientY - hy;
-              var dist = Math.sqrt(dx * dx + dy * dy);
-              var maxDist = Math.max(36, hRect.width * 1.5);
-              if (dist > maxDist && !target.closest('.irs-line, .irs-bar, .irs-bar-edge')) {
-                return;
-              }
-            }
-            var startVal = computeValueFromClientX(slider, e.clientX);
-            if (startVal == null) return;
-            updateSliderValue(slider, startVal);
-
-            dragState.active = true;
-            dragState.slider = slider;
-            dragState.pointerId = e.pointerId || null;
-            window.__axpSliderActive = true;
-            window.__axpSliderLastValue = startVal;
-          }
-
-          function onGlobalMove(ev) {
-            if (!dragState.active || !dragState.slider) return;
-            var v = computeValueFromClientX(dragState.slider, ev.clientX);
-            if (v == null) return;
-            updateSliderValue(dragState.slider, v);
-            window.__axpSliderLastValue = v;
-          }
-
-          function onGlobalUp() {
-            dragState.active = false;
-            dragState.slider = null;
-            dragState.pointerId = null;
-            window.__axpSliderActive = false;
-          }
-
-          document.addEventListener('pointerdown', proxyPointerDown, { passive: false, capture: true });
-          document.addEventListener('mousedown', proxyPointerDown, { passive: false, capture: true });
-          document.addEventListener('pointermove', onGlobalMove, { passive: false, capture: true });
-          document.addEventListener('mousemove', onGlobalMove, { passive: false, capture: true });
-          document.addEventListener('pointerup', onGlobalUp, { passive: false, capture: true });
-          document.addEventListener('mouseup', onGlobalUp, { passive: false, capture: true });
-
-          window.__axpSliderDragProxy = true;
-        }
 
         function showBusy() {
           if (!busy) return;
@@ -1242,7 +1148,6 @@ ui <- fluidPage(
           if (boot) boot.classList.remove('hidden');
           if (busy) busy.classList.add('hidden');
           installRewardSpriteAnimator();
-          installSliderDragProxy();
           ensureSlidersReady();
           updateSliderNextState();
 
@@ -1259,7 +1164,6 @@ ui <- fluidPage(
           setBootProgress(55);
           waitForPageObserver();
           installRewardSpriteAnimator();
-          installSliderDragProxy();
           ensureSlidersReady();
           updateSliderNextState();
         });
