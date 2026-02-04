@@ -66,6 +66,39 @@ See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for:
 
 See `config/.env.example` for the full list. All are optional for local development.
 
+## Safe Server Updates (Do Not Overwrite Secrets)
+
+The server keeps secrets and runtime config **outside git**. These files must never be overwritten:
+
+- `app/.Renviron`
+- `ops/mariadb/.env`
+
+**Safe update flow (recommended):**
+
+```bash
+cd /srv/shiny-server/axp-mvp-survey
+git fetch origin
+git checkout feature/mariadb-migration
+git pull --ff-only
+```
+
+**Optional safety backup before pull:**
+
+```bash
+cp app/.Renviron app/.Renviron.bak
+cp ops/mariadb/.env ops/mariadb/.env.bak
+```
+
+If Google Sheets config stops working after a pull, re-check `app/.Renviron` and confirm:
+
+```
+GOOGLE_SHEET_ID=...
+GOOGLE_SHEET_SHEETNAME=...
+GOOGLE_SHEET_AUTH_JSON=/srv/shiny-server/axp-mvp-survey/secret/your-service-account.json
+GOOGLE_SHEET_AUTH_EMAIL=...
+GOOGLE_SHEET_USE_OAUTH=false
+```
+
 ## Questionnaire in Google Sheets
 
 - Option A (no auth): publish your sheet as CSV and set `GOOGLE_SHEET_CSV_URL`.
