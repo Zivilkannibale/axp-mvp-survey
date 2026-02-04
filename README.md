@@ -266,7 +266,7 @@ Required secrets for production:
 
 ### Server sync (non-destructive)
 
-Use the following command block to sync the STRATO server with `origin/main` without clobbering local modifications. It backs up server-only files, attempts a fast-forward pull (no merge), restores secrets/configs, fixes ownership/permissions, and restarts Shiny Server. The backup/restore steps ensure `.Renviron`, `.Rprofile`, the service account JSON, and Shiny Server config survive even if tracked files change. The `--ff-only` pull protects against accidental merges when the server has local commits.
+Use the following command block to sync the STRATO server with the deploy branch without clobbering local modifications. It backs up server-only files, attempts a fast-forward pull (no merge), restores secrets/configs, fixes ownership/permissions, and restarts Shiny Server. The backup/restore steps ensure `.Renviron`, `.Rprofile`, the service account JSON, and Shiny Server config survive even if tracked files change. The `--ff-only` pull protects against accidental merges when the server has local commits.
 
 ```bash
 cd /srv/shiny-server/axp-mvp-survey
@@ -280,7 +280,8 @@ sudo cp -a /etc/shiny-server/shiny-server.conf "$backup_dir"/shiny-server.conf 2
 # sync without clobbering local changes
 git fetch origin
 git status --short
-git pull --ff-only origin main
+DEPLOY_BRANCH="feature/mariadb-migration"
+git pull --ff-only origin "$DEPLOY_BRANCH"
 
 # restore server-only files (in case tracked files overwrote them)
 cp -a "$backup_dir"/.Rprofile app/.Rprofile 2>/dev/null || true
@@ -312,9 +313,19 @@ location /axp-mvp-survey {
 }
 ```
 
+The current config template lives at `ops/shiny-server/shiny-server.conf.template`.
+
 If the app disconnects immediately, verify the websocket endpoint above returns JSON and that `app/app.R` sets `shiny.baseurl` to `/axp-mvp-survey/`.
 
 If the app exits during initialization with `Operation not allowed without an active reactive context`, make sure the translation helper uses `shiny::isolate(selected_language())` (see `app/app.R`).
+
+### Server troubleshooting checklist
+
+- Confirm the app URL: `http://85.215.90.33:3838/axp-mvp-survey/` (not `/app/`).
+- Confirm SockJS: `curl -i http://127.0.0.1:3838/axp-mvp-survey/__sockjs__/info` returns JSON.
+- Check app log: `LOG=$(ls -t /var/log/shiny-server/app-shiny-*.log | head -1); sudo tail -n 200 "$LOG"`.
+- If you see `Operation not allowed without an active reactive context`, patch `t()` to use `shiny::isolate(selected_language())`.
+- If the browser shows “application unexpectedly exited”, inspect the app log and the Shiny Server log (`/var/log/shiny-server.log`).
 
 ## Deploy steps (operator checklist)
 

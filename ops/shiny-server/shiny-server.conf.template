@@ -1,0 +1,20 @@
+# Shiny Server config template for axp-mvp-survey
+# Note: Copy to /etc/shiny-server/shiny-server.conf on the server.
+run_as shiny;
+
+server {
+  listen 3838;
+
+  # Serve the app directly at /axp-mvp-survey/
+  location /axp-mvp-survey {
+    app_dir /srv/shiny-server/axp-mvp-survey/app;
+    log_dir /var/log/shiny-server;
+  }
+
+  # Keep default index for other apps
+  location / {
+    site_dir /srv/shiny-server;
+    log_dir /var/log/shiny-server;
+    directory_index on;
+  }
+}
