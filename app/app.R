@@ -1750,6 +1750,24 @@ server <- function(input, output, session) {
     }, once = TRUE)
   }, ignoreInit = TRUE)
 
+  observeEvent(current_step(), {
+    step <- current_step()
+    session$onFlushed(function() {
+      if (step == 8) {
+        restore_slider_values(slider_group_ids1())
+      } else if (step == 9) {
+        restore_slider_values(slider_group_ids2())
+      } else if (step == 10) {
+        restore_slider_values(slider_group_ids3())
+      } else if (step == 11) {
+        restore_slider_values(slider_group_ids4())
+      }
+      if (step >= 8 && step <= 11 && is.function(updateSliderNextState)) {
+        updateSliderNextState()
+      }
+    }, once = TRUE)
+  }, ignoreInit = TRUE)
+
   observeEvent(input$q0, {
     if (isTRUE(suppress_pulse_server())) return()
     if (!is.null(input$q0) && input$q0 != "") {
@@ -2088,10 +2106,11 @@ questionnaire_ui_slider3 <- reactiveVal(NULL)
 questionnaire_ui_slider4 <- reactiveVal(NULL)
 questionnaire_ui_free <- reactiveVal(NULL)
 tracer_ui_cached <- reactiveVal(NULL)
-slider_group_ids1 <- reactiveVal(character(0))
-slider_group_ids2 <- reactiveVal(character(0))
-slider_group_ids3 <- reactiveVal(character(0))
-slider_group_ids4 <- reactiveVal(character(0))
+  slider_group_ids1 <- reactiveVal(character(0))
+  slider_group_ids2 <- reactiveVal(character(0))
+  slider_group_ids3 <- reactiveVal(character(0))
+  slider_group_ids4 <- reactiveVal(character(0))
+  slider_values <- reactiveValues()
 observeEvent(questionnaire_df(), {
   df <- questionnaire_df()
   df_questions <- df[df$type != "experience_tracer", ]
@@ -2140,6 +2159,34 @@ observeEvent(questionnaire_df(), {
   slider_group_ids4(as.character(slider_groups[[4]]$item_id))
   tracer_ui_cached(questionnaire_ui_vendor(df[df$type == "experience_tracer", ]))
 }, ignoreInit = FALSE)
+
+  observe({
+    ids <- c(
+      slider_group_ids1(),
+      slider_group_ids2(),
+      slider_group_ids3(),
+      slider_group_ids4()
+    )
+    ids <- ids[!is.na(ids) & ids != ""]
+    if (length(ids) == 0) return()
+    for (id in ids) {
+      val <- input[[id]]
+      if (!is.null(val) && !is.na(val) && val != "") {
+        slider_values[[id]] <- val
+      }
+    }
+  })
+
+  restore_slider_values <- function(ids) {
+    ids <- ids[!is.na(ids) & ids != ""]
+    if (length(ids) == 0) return()
+    for (id in ids) {
+      val <- slider_values[[id]]
+      if (!is.null(val) && !is.na(val) && val != "") {
+        updateSliderInput(session, id, value = val)
+      }
+    }
+  }
 
 output$questionnaire_ui_page1 <- renderUI({
   cached <- questionnaire_ui_page1()
