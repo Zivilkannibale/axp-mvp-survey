@@ -582,6 +582,29 @@ ui <- fluidPage(
       .intro-reload:hover {
         background: rgba(107, 61, 240, 0.06);
       }
+      .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+        padding-right: 42px;
+      }
+      .btn-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 16px;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(107, 61, 240, 0.45);
+        border-top-color: transparent;
+        border-radius: 50%;
+        transform: translateY(-50%);
+        animation: btn-spin 0.8s linear infinite;
+      }
+      @keyframes btn-spin {
+        from { transform: translateY(-50%) rotate(0deg); }
+        to { transform: translateY(-50%) rotate(360deg); }
+      }
       .intro-status {
         font-size: 13px;
         color: var(--text);
@@ -1306,6 +1329,29 @@ ui <- fluidPage(
               pulseHeader(node);
             });
           });
+          function setButtonLoading(id, loading, text) {
+            if (!id) return;
+            var btn = document.getElementById(id);
+            if (!btn) return;
+            if (loading) {
+              if (!btn.dataset.origLabel) {
+                btn.dataset.origLabel = btn.textContent;
+              }
+              btn.textContent = text || btn.dataset.origLabel;
+              btn.classList.add('btn-loading');
+              btn.disabled = true;
+            } else {
+              if (btn.dataset.origLabel) {
+                btn.textContent = btn.dataset.origLabel;
+              }
+              btn.classList.remove('btn-loading');
+              btn.disabled = false;
+            }
+          }
+          Shiny.addCustomMessageHandler('buttonLoading', function(msg) {
+            if (!msg) return;
+            setButtonLoading(msg.id, !!msg.loading, msg.text);
+          });
           var lastPulseAt = 0;
           var suppressPulseUntil = 0;
           function pulsesAllowed() {
@@ -1342,6 +1388,17 @@ ui <- fluidPage(
                   if (busy) busy.classList.add('hidden');
                 }, 750);
               });
+            }
+
+            if (target.closest) {
+              var reloadBtn = target.closest('#reload_questionnaire');
+              if (reloadBtn) {
+                setButtonLoading('reload_questionnaire', true, 'Reloading...');
+              }
+              var submitBtn = target.closest('#submit');
+              if (submitBtn) {
+                setButtonLoading('submit', true, 'Revealing...');
+              }
             }
           }, true);
 
@@ -1515,8 +1572,10 @@ server <- function(input, output, session) {
   progress_end_step <- 14  # Tracer moved to optional step 15
 
   observeEvent(input$reload_questionnaire, {
+    session$sendCustomMessage("buttonLoading", list(id = "reload_questionnaire", loading = TRUE, text = "Reloading..."))
     sheet_name <- if (is.null(input$sheet_name_override)) "" else trimws(input$sheet_name_override)
     update_questionnaire(sheet_name_override = sheet_name)
+    session$sendCustomMessage("buttonLoading", list(id = "reload_questionnaire", loading = FALSE))
   })
 
   output$load_status <- renderText(load_status())
@@ -2326,6 +2385,11 @@ output$tracer_ui <- renderUI({
   output$feedback_summary <- renderUI({
     status_line <- submission_status()
     scores_ready <- nrow(latest_scores()) > 0
+    plot_source <- if (scores_ready) {
+      "Plot uses your submitted responses."
+    } else {
+      "Plot is using mock data (dev mode or no submission yet)."
+    }
     status_text <- if (status_line != "") {
       status_line
     } else if (!scores_ready) {
@@ -2342,6 +2406,7 @@ output$tracer_ui <- renderUI({
         " Farther from the center means a stronger reported experience.",
         " The gray dots summarize how other people tended to respond (mock data for now)."
       ),
+      p(class = "feedback-note", plot_source),
       if (status_text != "") p(class = "muted", status_text)
     )
   })
@@ -2445,11 +2510,13 @@ output$tracer_ui <- renderUI({
   outputOptions(output, "questionnaire_ui_free", suspendWhenHidden = FALSE)
 
   observeEvent(input$submit, {
+    session$sendCustomMessage("buttonLoading", list(id = "submit", loading = TRUE, text = "Revealing..."))
     validation_error("")
     submission_status("")
 
     if (!isTRUE(input$consent)) {
       validation_error("Consent is required before continuing.")
+      session$sendCustomMessage("buttonLoading", list(id = "submit", loading = FALSE))
       return()
     }
 
@@ -2473,6 +2540,7 @@ output$tracer_ui <- renderUI({
 
     if (length(missing) > 0) {
       validation_error(paste0("Missing required items: ", paste(missing, collapse = ", ")))
+      session$sendCustomMessage("buttonLoading", list(id = "submit", loading = FALSE))
       return()
     }
 
@@ -2549,6 +2617,7 @@ output$tracer_ui <- renderUI({
     latest_scores(scores_df)
     current_step(14)  # Go to feedback page (step 14)
     show_transition_busy()
+    session$sendCustomMessage("buttonLoading", list(id = "submit", loading = FALSE))
   })
 
   # Navigate to optional Experience Tracer (Beta)

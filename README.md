@@ -19,6 +19,7 @@ Rscript -e "shiny::runApp('app')"
 ```
 
 The app automatically uses `docs/sample_questionnaire.csv` when Google Sheets isn't configured.
+Language-specific CSVs are available at `docs/sample_questionnaire_en.csv` and `docs/sample_questionnaire_de.csv`.
 
 **Optional:** Enable dev mode for step jumping:
 ```r
@@ -369,7 +370,7 @@ renv::install("systemfonts")
 
 ## Scoring and norms
 
-- Define scales in `docs/scales.csv`.
+- Define scales in `docs/scales.csv` (currently mapped to all 11D-ASC items).
 - Recompute norms with:
 
 ```r
@@ -427,6 +428,7 @@ renv::snapshot()
 
 - The progress-step "reward" indicator uses a flipbook sprite sheet (`app/www/circleshepherd4.png`) to animate through an 11x11 grid; the frame index advances in JS at a fixed FPS, with the active state tinted purple and a center dot.
 - The radar plot will fall back to mock data if computed scores do not map to all 11 canonical scale labels. This is intentional for now while the full scale mapping is incomplete.
+- The feedback page now explicitly states whether the radar plot uses real submitted scores or mock data (e.g., dev mode).
 - Slider inputs use a readiness gate to avoid initial layout shifts; the UI keeps handles hidden until ionRangeSlider is fully initialized.
 - Free-text responses are stored only in the raw database and excluded from public exports by default.
 - IP addresses are not collected or stored.

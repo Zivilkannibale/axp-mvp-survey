@@ -1,2 +1,23 @@
 item_id,scale_id,reverse,max_value
-q2,energy,0,100
+q2,Anxiety,0,100
+q3,Anxiety,0,100
+q4,Impaired Control and Cognition,0,100
+q5,Impaired Control and Cognition,0,100
+q6,Disembodiment,0,100
+q7,Spiritual Experience,0,100
+q8,Disembodiment,0,100
+q9,Blissful State,0,100
+q10,Blissful State,0,100
+q11,Experience of Unity,0,100
+q12,Experience of Unity,0,100
+q13,Spiritual Experience,0,100
+q14,Insightfulness,0,100
+q15,Insightfulness,0,100
+q16,Changed Meaning of Percepts,0,100
+q17,Changed Meaning of Percepts,0,100
+q18,Audio-Visual Synesthesia,0,100
+q19,Audio-Visual Synesthesia,0,100
+q20,Complex Imagery,0,100
+q21,Complex Imagery,0,100
+q22,Elementary Imagery,0,100
+q23,Elementary Imagery,0,100

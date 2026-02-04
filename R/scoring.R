@@ -17,7 +17,14 @@ compute_scores <- function(responses_numeric_df, scales_df) {
     )
   }
 
-  agg <- aggregate(score_value ~ scale_id, data = merged, FUN = mean)
+  agg <- aggregate(
+    score_value ~ scale_id,
+    data = merged,
+    FUN = function(x) {
+      if (all(is.na(x))) return(NA_real_)
+      mean(x, na.rm = TRUE)
+    }
+  )
   agg$created_at <- Sys.time()
   agg
 }
