@@ -22,6 +22,11 @@ suppressPackageStartupMessages({
 })
 
 options(shiny.useragg = TRUE)
+base_url <- Sys.getenv("SHINY_BASEURL")
+if (is.null(base_url) || base_url == "") {
+  base_url <- "/axp-mvp-survey/"
+}
+options(shiny.baseurl = base_url)
 
 if (requireNamespace("systemfonts", quietly = TRUE)) {
   try({
@@ -1623,7 +1628,7 @@ server <- function(input, output, session) {
     )
   )
   t <- function(key, ...) {
-    lang <- selected_language()
+    lang <- tryCatch(shiny::isolate(selected_language()), error = function(e) "en")
     entry <- translations[[lang]][[key]]
     if (is.null(entry)) entry <- translations$en[[key]]
     if (is.null(entry)) entry <- key

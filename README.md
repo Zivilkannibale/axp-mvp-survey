@@ -250,7 +250,7 @@ Required secrets for production:
 |----------|-------|
 | OS | Ubuntu 20.04.6 LTS (OpenVZ virtualization) |
 | Shiny Server | active (systemd); listens on port 3838 |
-| Config | `/etc/shiny-server/shiny-server.conf` → `site_dir /srv/shiny-server`, `run_as shiny` |
+| Config | `/etc/shiny-server/shiny-server.conf` -> `site_dir /srv/shiny-server`, `run_as shiny` |
 | Repo path | `/srv/shiny-server/axp-mvp-survey` |
 | R version | 4.5.2 |
 | renv | 1.1.6 |
@@ -261,12 +261,12 @@ Required secrets for production:
 - App path: `/srv/shiny-server/axp-mvp-survey/app`
 - Service account JSON: `/srv/shiny-server/axp-mvp-survey/secret/axp-mvp-3ec693c04c81.json`
 - App env: `/srv/shiny-server/axp-mvp-survey/app/.Renviron` (contains Google Sheets config)
-- Shiny Server listens on `http://85.215.90.33:3838/axp-mvp-survey/app/`
+- Shiny Server listens on `http://85.215.90.33:3838/axp-mvp-survey/`
 - HTTPS is expected to be added via Traefik + DNS (e.g., `axp.circe-science.de`)
 
 ### Server sync (non-destructive)
 
-Use the following command block to sync the STRATO server with `origin/main` without clobbering local modifications. It backs up server-only files, attempts a fast-forward pull (no merge), restores secrets/configs, fixes ownership/permissions, and restarts Shiny Server. The backup/restore steps ensure `.Renviron`, `.Rprofile`, and the service account JSON survive even if tracked files change. The `--ff-only` pull protects against accidental merges when the server has local commits.
+Use the following command block to sync the STRATO server with `origin/main` without clobbering local modifications. It backs up server-only files, attempts a fast-forward pull (no merge), restores secrets/configs, fixes ownership/permissions, and restarts Shiny Server. The backup/restore steps ensure `.Renviron`, `.Rprofile`, the service account JSON, and Shiny Server config survive even if tracked files change. The `--ff-only` pull protects against accidental merges when the server has local commits.
 
 ```bash
 cd /srv/shiny-server/axp-mvp-survey
@@ -275,6 +275,7 @@ cd /srv/shiny-server/axp-mvp-survey
 backup_dir="/tmp/axp-server-only-$(date +%Y%m%d%H%M%S)"
 mkdir -p "$backup_dir"
 cp -a app/.Rprofile app/.Renviron secret/axp-mvp-3ec693c04c81.json "$backup_dir"/ 2>/dev/null || true
+sudo cp -a /etc/shiny-server/shiny-server.conf "$backup_dir"/shiny-server.conf 2>/dev/null || true
 
 # sync without clobbering local changes
 git fetch origin
@@ -286,6 +287,7 @@ cp -a "$backup_dir"/.Rprofile app/.Rprofile 2>/dev/null || true
 cp -a "$backup_dir"/.Renviron app/.Renviron 2>/dev/null || true
 mkdir -p secret
 cp -a "$backup_dir"/axp-mvp-3ec693c04c81.json secret/axp-mvp-3ec693c04c81.json 2>/dev/null || true
+sudo cp -a "$backup_dir"/shiny-server.conf /etc/shiny-server/shiny-server.conf 2>/dev/null || true
 
 # fix ownership/permissions
 chown shiny:shiny app/.Rprofile app/.Renviron secret/axp-mvp-3ec693c04c81.json 2>/dev/null || true
@@ -294,6 +296,25 @@ chmod 600 app/.Renviron secret/axp-mvp-3ec693c04c81.json 2>/dev/null || true
 
 systemctl restart shiny-server
 ```
+
+### Shiny Server routing (important)
+
+The app is served at `/axp-mvp-survey/` (not `/axp-mvp-survey/app/`). SockJS must be reachable at:
+
+- `/axp-mvp-survey/__sockjs__/info`
+
+Shiny Server config should include:
+
+```
+location /axp-mvp-survey {
+  app_dir /srv/shiny-server/axp-mvp-survey/app;
+  log_dir /var/log/shiny-server;
+}
+```
+
+If the app disconnects immediately, verify the websocket endpoint above returns JSON and that `app/app.R` sets `shiny.baseurl` to `/axp-mvp-survey/`.
+
+If the app exits during initialization with `Operation not allowed without an active reactive context`, make sure the translation helper uses `shiny::isolate(selected_language())` (see `app/app.R`).
 
 ## Deploy steps (operator checklist)
 
