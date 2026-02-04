@@ -256,7 +256,7 @@ ui <- fluidPage(
       .irs--shiny .irs-line, .irs--shiny .irs-line::before, .irs--shiny .irs-bar, .irs--shiny .irs-bar::before, .irs--shiny .irs-handle {
         cursor: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%236b3df0' d='M10 2V9.5H9V3C9 2.45 8.55 2 8 2S7 2.45 7 3V14.35L4.5 11.53C4.06 11.04 3.32 10.97 2.79 11.35C2.21 11.77 2.07 12.58 2.47 13.17L5.73 17.96C6.85 19.86 8.9 21 11.11 21H13C16.31 21 19 18.31 19 15V6C19 5.45 18.55 5 18 5S17 5.45 17 6V9.5H16V4C16 3.45 15.55 3 15 3S14 3.45 14 4V9.5H13V3C13 2.45 12.55 2 12 2S11 2.45 11 3V9.5H10V2Z'/%3E%3C/svg%3E\") 12 0, pointer !important;
         user-select: none;
-        touch-action: none;
+        touch-action: pan-y;
       }
       .irs--shiny { height: 56px; clip-path: inset(0); opacity: 1; transition: opacity 325ms ease; }
       .irs--shiny.is-untouched .irs-bar,
@@ -1184,27 +1184,10 @@ ui <- fluidPage(
 
           document.addEventListener('pointerdown', proxyPointerDown, { passive: false, capture: true });
           document.addEventListener('mousedown', proxyPointerDown, { passive: false, capture: true });
-          document.addEventListener('touchstart', function(ev) {
-            if (!ev.touches || !ev.touches.length) return;
-            var t = ev.touches[0];
-            if (ev.preventDefault) ev.preventDefault();
-            proxyPointerDown({
-              target: ev.target,
-              clientX: t.clientX,
-              clientY: t.clientY,
-              pointerType: 'touch',
-              pointerId: 1
-            });
-          }, { passive: false, capture: true });
           document.addEventListener('pointermove', onGlobalMove, { passive: false, capture: true });
           document.addEventListener('mousemove', onGlobalMove, { passive: false, capture: true });
-          document.addEventListener('touchmove', function(ev) {
-            if (!ev.touches || !ev.touches.length) return;
-            onGlobalMove({ clientX: ev.touches[0].clientX });
-          }, { passive: false, capture: true });
           document.addEventListener('pointerup', onGlobalUp, { passive: false, capture: true });
           document.addEventListener('mouseup', onGlobalUp, { passive: false, capture: true });
-          document.addEventListener('touchend', onGlobalUp, { passive: false, capture: true });
 
           window.__axpSliderDragProxy = true;
         }
