@@ -1182,6 +1182,17 @@ ui <- fluidPage(
         });
 
         if (window.Shiny) {
+          Shiny.addCustomMessageHandler('markSliderTouched', function(msg) {
+            if (!msg || !msg.id) return;
+            var input = document.getElementById(msg.id);
+            if (!input) return;
+            var irs = input.closest('.form-group');
+            if (!irs) return;
+            var slider = irs.querySelector('.irs--shiny');
+            if (!slider) return;
+            slider.classList.remove('is-untouched');
+            slider.classList.add('is-touched');
+          });
           function pulseHeader(node) {
             if (!node) return;
             if (node.__pulseTimer) {
@@ -2188,6 +2199,7 @@ observeEvent(questionnaire_df(), {
       val <- snapshot[[id]]
       if (!is.null(val) && !is.na(val) && val != "") {
         updateSliderInput(session, id, value = val)
+        session$sendCustomMessage("markSliderTouched", list(id = id))
       }
     }
   }
