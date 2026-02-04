@@ -120,6 +120,16 @@ DB_PASSWORD=<same-password-from-docker-env>
 DB_SSL=false
 ```
 
+**Required settings for Google Sheets (production):**
+
+```
+GOOGLE_SHEET_ID=...
+GOOGLE_SHEET_SHEETNAME=...
+GOOGLE_SHEET_AUTH_JSON=/srv/shiny-server/axp-mvp-survey/secret/your-service-account.json
+GOOGLE_SHEET_AUTH_EMAIL=...
+GOOGLE_SHEET_USE_OAUTH=false
+```
+
 **Secure the file:**
 
 ```bash
