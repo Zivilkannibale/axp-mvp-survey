@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 # -----------------------------------------------------------------------------
-# Export public dataset from MariaDB (or Postgres)
+# Export public dataset from MariaDB
 # Produces cleaned CSVs with NO free-text and anonymized session IDs
 # Output: exports/axp_public_YYYYMMDD.csv + codebook + README + CHANGELOG
 # -----------------------------------------------------------------------------
@@ -20,8 +20,7 @@ if (!has_db_config(cfg)) {
   stop("Database configuration is incomplete. Set DB_* environment variables.", call. = FALSE)
 }
 
-dialect <- get_db_dialect()
-message("Connecting to ", dialect, " database...")
+message("Connecting to MariaDB database...")
 
 conn <- db_connect(cfg)
 on.exit(DBI::dbDisconnect(conn), add = TRUE)

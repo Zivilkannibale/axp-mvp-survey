@@ -9,10 +9,3 @@ default:
   gargle_oauth_cache: "<path to gargle oauth cache>"
   app_base_url: "<https url>"
   osf_project_id: "<osf project id>"
-
-postgres:
-  host: "<host>"
-  db: "<db>"
-  user: "<user>"
-  password: "<password>"
-  port: 5432

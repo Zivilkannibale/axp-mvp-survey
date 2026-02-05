@@ -134,19 +134,17 @@ Common ones:
 - `GOOGLE_SHEET_AUTH_JSON`
 - `GOOGLE_SHEET_USE_OAUTH`
 - `DB_*` (MariaDB, primary)
-- `STRATO_PG_*` (PostgreSQL, legacy)
 - `P6M_ENABLED`, `P6M_ANIMATED`
 - `DEV_MODE`
 - `OSF_TOKEN`, `OSF_PROJECT_ID` (for public exports)
 
 ## Data persistence
 
-The app supports MariaDB (primary, recommended) and PostgreSQL (legacy) for raw data storage.
+The app uses MariaDB for raw data storage.
 
 ### Key files:
-- `R/db.R` - Database connector (auto-detects dialect from `DB_DIALECT`)
+- `R/db.R` - Database connector (MariaDB)
 - `R/config.R` - Environment variable loading
-- `sql/001_init.sql` - PostgreSQL schema
 - `sql/001_init_mariadb.sql` - MariaDB schema (UTF8MB4, InnoDB)
 
 ### Tables (MariaDB):
@@ -160,7 +158,6 @@ The app supports MariaDB (primary, recommended) and PostgreSQL (legacy) for raw 
 ### Configuration:
 ```bash
 # In app/.Renviron on server:
-DB_DIALECT=mariadb
 DB_HOST=database-5019530911.webspace-host.com
 DB_PORT=3306
 DB_NAME=dbs15265782

@@ -1,52 +1,25 @@
 # -----------------------------------------------------------------------------
-# Database connector supporting MariaDB (primary) and PostgreSQL (legacy)
+# Database connector supporting MariaDB (primary)
 # -----------------------------------------------------------------------------
 # Environment variables:
-#   DB_DIALECT     - "mariadb" (default) or "postgres"
 #   DB_HOST        - Database hostname
-#   DB_PORT        - Database port (3306 for MariaDB, 5432 for Postgres)
+#   DB_PORT        - Database port (3306 default)
 #   DB_NAME        - Database name
 #   DB_USER        - Database username
 #   DB_PASSWORD    - Database password (NEVER log this)
-#   DB_TLS         - "1" to enable TLS (recommended for MariaDB)
+#   DB_TLS         - "1" to enable TLS (recommended for remote MariaDB)
 #   DB_TLS_VERIFY  - "1" to verify server certificate
 #   DB_TLS_CA_PATH - Path to CA certificate (optional; uses system CA if blank)
-#
-# Legacy Postgres env vars (still supported for backward compatibility):
-#   STRATO_PG_HOST, STRATO_PG_DB, STRATO_PG_USER, STRATO_PG_PASSWORD, STRATO_PG_PORT
 # -----------------------------------------------------------------------------
 
-#' Determine database dialect from environment
-#' @return "mariadb" or "postgres"
-get_db_dialect <- function() {
-
-  dialect <- Sys.getenv("DB_DIALECT", "")
-  if (dialect != "") {
-    return(tolower(dialect))
-  }
-  # Legacy: if STRATO_PG_* vars are set but DB_* are not, assume postgres
-
-  if (Sys.getenv("STRATO_PG_HOST", "") != "" && Sys.getenv("DB_HOST", "") == "") {
-    return("postgres")
-  }
-  "mariadb"  # Default to MariaDB
-}
-
-#' Create database connection
+#' Create database connection (MariaDB)
 #' @param cfg Configuration list from get_config(). If NULL, loads config automatically.
 #' @return DBI connection object
 db_connect <- function(cfg = NULL) {
   if (is.null(cfg)) {
     cfg <- get_config(required = FALSE)
   }
-  dialect <- get_db_dialect()
-  
-
-  if (dialect == "mariadb") {
-    db_connect_mariadb(cfg)
-  } else {
-    db_connect_postgres(cfg)
-  }
+  db_connect_mariadb(cfg)
 }
 
 #' Connect to MariaDB
@@ -122,113 +95,58 @@ db_connect_mariadb <- function(cfg) {
   })
 }
 
-#' Connect to PostgreSQL (legacy)
-#' @param cfg Configuration list
-#' @return DBI connection to PostgreSQL
-db_connect_postgres <- function(cfg) {
-  if (!requireNamespace("RPostgres", quietly = TRUE)) {
-    stop("RPostgres package is required for PostgreSQL connections. Install with: install.packages('RPostgres')", call. = FALSE)
-  }
-  
-  # Support both new DB_* and legacy STRATO_PG_* variables
-  host <- if (cfg$DB_HOST != "") cfg$DB_HOST else cfg$STRATO_PG_HOST
-  port <- if (cfg$DB_PORT != "") cfg$DB_PORT else cfg$STRATO_PG_PORT
-  dbname <- if (cfg$DB_NAME != "") cfg$DB_NAME else cfg$STRATO_PG_DB
-  user <- if (cfg$DB_USER != "") cfg$DB_USER else cfg$STRATO_PG_USER
-  password <- if (cfg$DB_PASSWORD != "") cfg$DB_PASSWORD else cfg$STRATO_PG_PASSWORD
-  
-  DBI::dbConnect(
-    RPostgres::Postgres(),
-    host = host,
-    dbname = dbname,
-    user = user,
-    password = password,
-    port = as.integer(port)
-  )
-}
-
-db_init_schema <- function(conn, sql_path = "sql/001_init.sql") {
-  dialect <- get_db_dialect()
-  
-  # Choose the appropriate schema file based on dialect
-  if (dialect == "mariadb") {
+db_init_schema <- function(conn, sql_path = "sql/001_init_mariadb.sql") {
+  # Allow older callers to pass sql/001_init.sql
+  if (grepl("001_init\\.sql$", sql_path)) {
     mariadb_path <- sub("\\.sql$", "_mariadb.sql", sql_path)
     if (file.exists(mariadb_path)) {
       sql_path <- mariadb_path
     }
   }
-  
   sql <- readr::read_file(sql_path)
-  
+
   # MariaDB: execute statements one at a time (doesn't support multiple statements in one call reliably)
-  if (dialect == "mariadb") {
-    # Split by semicolon, handling potential edge cases
-    statements <- strsplit(sql, ";\\s*(?=\\S)", perl = TRUE)[[1]]
-    statements <- trimws(statements)
-    statements <- statements[statements != ""]
-    
-    for (stmt in statements) {
-      if (nchar(trimws(stmt)) > 0) {
-        tryCatch({
-          DBI::dbExecute(conn, stmt)
-        }, error = function(e) {
-          # Ignore "table already exists" type errors for idempotent schema init
-          if (!grepl("already exists|Duplicate", conditionMessage(e), ignore.case = TRUE)) {
-            warning("Schema statement failed: ", conditionMessage(e))
-          }
-        })
-      }
+  statements <- strsplit(sql, ";\\s*(?=\\S)", perl = TRUE)[[1]]
+  statements <- trimws(statements)
+  statements <- statements[statements != ""]
+
+  for (stmt in statements) {
+    if (nchar(trimws(stmt)) > 0) {
+      tryCatch({
+        DBI::dbExecute(conn, stmt)
+      }, error = function(e) {
+        # Ignore "table already exists" type errors for idempotent schema init
+        if (!grepl("already exists|Duplicate", conditionMessage(e), ignore.case = TRUE)) {
+          warning("Schema statement failed: ", conditionMessage(e))
+        }
+      })
     }
-    invisible(NULL)
-  } else {
-    DBI::dbExecute(conn, sql)
   }
+  invisible(NULL)
 }
 
 db_insert_submission <- function(conn, submission) {
-  dialect <- get_db_dialect()
-  
-  if (dialect == "mariadb") {
-    # MariaDB: use ? placeholders and UUID() function or generate UUID in R
-    submission_id <- uuid::UUIDgenerate()
-    
-    sql <- paste0(
-      "INSERT INTO submission (submission_id, created_at, instrument_id, instrument_version, language, consent_version, definition_hash) ",
-      "VALUES (?, NOW(), ?, ?, ?, ?, ?)"
+  # MariaDB: use ? placeholders and generate UUID in R
+  submission_id <- uuid::UUIDgenerate()
+
+  sql <- paste0(
+    "INSERT INTO submission (submission_id, created_at, instrument_id, instrument_version, language, consent_version, definition_hash) ",
+    "VALUES (?, NOW(), ?, ?, ?, ?, ?)"
+  )
+
+  DBI::dbExecute(
+    conn,
+    sql,
+    params = list(
+      submission_id,
+      submission$instrument_id,
+      submission$instrument_version,
+      submission$language,
+      submission$consent_version,
+      submission$definition_hash
     )
-    
-    DBI::dbExecute(
-      conn,
-      sql,
-      params = list(
-        submission_id,
-        submission$instrument_id,
-        submission$instrument_version,
-        submission$language,
-        submission$consent_version,
-        submission$definition_hash
-      )
-    )
-    return(submission_id)
-  } else {
-    # PostgreSQL: use $N placeholders and RETURNING
-    sql <- paste0(
-      "INSERT INTO submission (created_at, instrument_id, instrument_version, language, consent_version, definition_hash) ",
-      "VALUES (NOW(), $1, $2, $3, $4, $5) RETURNING submission_id"
-    )
-    res <- DBI::dbGetQuery(
-      conn,
-      sql,
-      params = list(
-        submission$instrument_id,
-        submission$instrument_version,
-        submission$language,
-        submission$consent_version,
-        submission$definition_hash
-      )
-    )
-    return(res$submission_id[1])
-  }
+  )
+  return(submission_id)
 }
 
 db_insert_responses_numeric <- function(conn, submission_id, responses_df) {
@@ -257,21 +175,11 @@ db_insert_scores <- function(conn, submission_id, scores_df) {
 }
 
 db_read_norms <- function(conn, instrument_version) {
-  dialect <- get_db_dialect()
-  
-  if (dialect == "mariadb") {
-    DBI::dbGetQuery(
-      conn,
-      "SELECT * FROM aggregate_norms WHERE instrument_version = ?",
-      params = list(instrument_version)
-    )
-  } else {
-    DBI::dbGetQuery(
-      conn,
-      "SELECT * FROM aggregate_norms WHERE instrument_version = $1",
-      params = list(instrument_version)
-    )
-  }
+  DBI::dbGetQuery(
+    conn,
+    "SELECT * FROM aggregate_norms WHERE instrument_version = ?",
+    params = list(instrument_version)
+  )
 }
 
 # -----------------------------------------------------------------------------

@@ -137,7 +137,7 @@ The questionnaire supports a custom `sliderInput` type. Required sliders must be
 
 ## Experience tracer input
 
-The questionnaire supports a custom `experience_tracer` type (drawn curve over time). It records raw points and a resampled vector on submit.
+The questionnaire supports a custom `experience_tracer` type (drawn curve over time). It is currently optional/experimental and is not saved to the database.
 
 Optional columns for tracer configuration (all optional):
 - `tracer_instruction` (string)
@@ -203,19 +203,17 @@ The database runs as a Docker container on the vServer, bound to localhost only 
 Set the following environment variables (in `app/.Renviron` on server):
 
 ```bash
-DB_DIALECT=mariadb
 DB_HOST=127.0.0.1
 DB_PORT=3307
 DB_NAME=axp_mvp
 DB_USER=axp_app
 DB_PASSWORD=...        # NEVER commit
-DB_SSL=false           # TLS not needed for localhost
-DB_USER=axp_app
-DB_PASSWORD=...        # NEVER commit
-DB_SSL=false           # TLS not needed for localhost
+DB_TLS=0               # TLS not needed for localhost
+DB_TLS_VERIFY=0
+DB_TLS_CA_PATH=
 ```
 
-**Note:** `DB_SSL=false` is correct for localhost connections. TLS is only needed for remote databases.
+**Note:** `DB_TLS=0` is correct for localhost connections. TLS is only needed for remote databases.
 
 For local development without a database, simply omit `DB_*` variables — the app will skip DB writes.
 
@@ -417,7 +415,7 @@ source("scripts/recompute_norms.R")
 source("scripts/export_public.R")
 ```
 
-- `scripts/osf_upload.R` is a placeholder and uses `OSF_TOKEN` when configured.
+- `scripts/osf_upload.R` uploads the latest exports to OSF when `OSF_TOKEN` and `OSF_PROJECT_ID` are configured.
 - Exports exclude free-text by default and coarsen timestamps to dates.
 
 ## renv
@@ -435,7 +433,6 @@ Dependencies used:
 - jsonlite
 - DBI
 - RMariaDB (primary database driver)
-- RPostgres (legacy, optional)
 - uuid (for session ID generation)
 - digest (for anonymization hashes)
 - readr

@@ -19,7 +19,6 @@ cfg <- get_config(required = FALSE)
 if (!has_db_config(cfg)) {
   message("Database configuration not found.")
   message("Set DB_* environment variables in app/.Renviron:")
-  message("  DB_DIALECT=mariadb")
   message("  DB_HOST=database-5019530911.webspace-host.com")
   message("  DB_PORT=3306")
   message("  DB_NAME=dbs15265782")
@@ -29,8 +28,7 @@ if (!has_db_config(cfg)) {
   quit(status = 1)
 }
 
-dialect <- get_db_dialect()
-message("Connecting to ", dialect, " database...")
+message("Connecting to MariaDB database...")
 
 conn <- tryCatch({
   db_connect(cfg)
@@ -43,12 +41,7 @@ on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
 message("Connection successful!")
 
-# Determine schema file path
-if (dialect == "mariadb") {
-  sql_path <- "sql/001_init_mariadb.sql"
-} else {
-  sql_path <- "sql/001_init.sql"
-}
+sql_path <- "sql/001_init_mariadb.sql"
 
 if (!file.exists(sql_path)) {
   message("Schema file not found: ", sql_path)

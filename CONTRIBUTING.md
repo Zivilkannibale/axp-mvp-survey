@@ -56,7 +56,7 @@ The app will use `docs/sample_questionnaire.csv` by default — no Google Sheets
 | `R/quetzio/vendor_ui.R` | Dynamic UI generator for questionnaire items |
 | `R/scoring.R` | Score computation from numeric responses |
 | `R/plots.R` | Radar chart for feedback page |
-| `R/db.R` | PostgreSQL persistence (optional) |
+| `R/db.R` | MariaDB persistence |
 | `docs/sample_questionnaire.csv` | Local questionnaire for development |
 | `docs/scales.csv` | Scale definitions for scoring |
 
@@ -131,7 +131,6 @@ See `config/.env.example` for the full list. For local dev, only optional vars:
 | `P6M_ENABLED` | Animated tiling background | No (default: false) |
 | `GOOGLE_SHEET_*` | Google Sheets integration | No (uses local CSV) |
 | `DB_*` | MariaDB persistence (primary) | No (skips DB writes) |
-| `STRATO_PG_*` | PostgreSQL persistence (legacy) | No (use DB_* instead) |
 | `OSF_TOKEN`, `OSF_PROJECT_ID` | OSF export uploads | No (manual upload) |
 
 ## Common Issues

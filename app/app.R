@@ -22,11 +22,7 @@ suppressPackageStartupMessages({
 })
 
 options(shiny.useragg = TRUE)
-base_url <- Sys.getenv("SHINY_BASEURL")
-if (is.null(base_url) || base_url == "") {
-  base_url <- "/axp-mvp-survey/"
-}
-options(shiny.baseurl = base_url)
+options(shiny.baseurl = "/axp-mvp-survey/")
 
 if (requireNamespace("systemfonts", quietly = TRUE)) {
   try({
@@ -83,6 +79,14 @@ DEV_MODE <- env_flag(cfg_ui$DEV_MODE, FALSE)
 
 ui <- fluidPage(
   tags$head(
+    tags$script(HTML("
+      $(function(){
+        if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.config) {
+          Shiny.shinyapp.config.baseurl = '/axp-mvp-survey/';
+        }
+      });
+    ")),
+
     tags$link(rel = "preload", href = "fonts/PressStart2P-Regular.ttf", as = "font", type = "font/ttf"),
     tags$link(rel = "preload", href = "fonts/Nunito-VariableFont_wght.ttf", as = "font", type = "font/ttf"),
     tags$link(rel = "preload", href = "circe-logo.png", as = "image"),
@@ -394,11 +398,56 @@ ui <- fluidPage(
         min-height: 62vh;
         padding: 8px 6px 6px;
       }
+      .language-card {
+        padding: 18px 18px 16px;
+      }
+      .intro-panel--language {
+        min-height: auto;
+        padding: 12px 6px 10px;
+        gap: 20px;
+        justify-items: center;
+      }
       .intro-center {
         display: grid;
         gap: 14px;
         text-align: left;
         align-content: start;
+      }
+      .intro-panel--language .intro-center {
+        justify-items: center;
+        text-align: center;
+        align-content: center;
+      }
+      .intro-panel--language .intro-body {
+        display: none;
+      }
+      .intro-panel--language .intro-title {
+        letter-spacing: 0.22em;
+      }
+      .intro-panel--language .intro-controls {
+        width: 100%;
+        max-width: 360px;
+        align-items: center;
+        justify-items: center;
+        gap: 12px;
+      }
+      .intro-panel--language .intro-controls .form-group {
+        width: 100%;
+        margin: 0;
+      }
+      .intro-panel--language .control-label {
+        text-align: center;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .intro-panel--language .form-control {
+        height: 48px;
+        padding: 10px 18px;
+        border: 1px solid rgba(107, 61, 240, 0.6);
+        text-align: center;
       }
       .intro-title {
         font-family: var(--font-head);
@@ -675,6 +724,12 @@ ui <- fluidPage(
       @media (max-width: 520px) {
         .intro-title { font-size: 26px; letter-spacing: 0.2em; }
         .intro-body { font-size: 12px; }
+        .intro-panel--language .intro-controls {
+          max-width: 100%;
+        }
+        .intro-panel--language .form-control {
+          height: 46px;
+        }
       }
       .boot-overlay, .busy-overlay {
         position: fixed;
@@ -2032,20 +2087,23 @@ server <- function(input, output, session) {
     if (step == 0) {
       return(tagList(
         div(
-          class = "app-card",
+          class = "app-card language-card",
           div(
-            class = "intro-panel",
+            class = "intro-panel intro-panel--language",
             div(
               class = "intro-center",
               div(class = "intro-title", t("language_title")),
               div(class = "intro-body"),
               div(
                 class = "intro-controls",
-                selectInput(
-                  "language_choice",
-                  t("language_label"),
-                  choices = c("English" = "en", "Deutsch" = "de"),
-                  selected = selected_language()
+                div(
+                  class = "language-select",
+                  selectInput(
+                    "language_choice",
+                    t("language_label"),
+                    choices = c("English" = "en", "Deutsch" = "de"),
+                    selected = selected_language()
+                  )
                 ),
                 actionButton("next_step", t("language_continue"), class = "intro-start")
               )
@@ -2816,8 +2874,6 @@ output$tracer_ui <- renderUI({
 }
 
 shinyApp(ui, server)
-
-
 
 
 

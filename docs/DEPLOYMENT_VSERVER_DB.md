@@ -39,7 +39,7 @@ MariaDB database on the vServer for the AXP MVP Survey application.
 | MariaDB self-hosted | Strato managed DB resolves to private IP, unreachable from vServer |
 | Port 3307 | Avoids conflicts with any existing MySQL/MariaDB installations |
 | Bind to 127.0.0.1 | Database is NOT publicly accessible (security) |
-| DB_SSL=false | TLS not needed for localhost connections |
+| DB_TLS=0 | TLS not needed for localhost connections |
 | Docker volume | Data persists across container restarts |
 
 ---
@@ -111,13 +111,14 @@ nano .Renviron
 **Required settings for database:**
 
 ```
-DB_DIALECT=mariadb
 DB_HOST=127.0.0.1
 DB_PORT=3307
 DB_NAME=axp_mvp
 DB_USER=axp_app
 DB_PASSWORD=<same-password-from-docker-env>
-DB_SSL=false
+DB_TLS=0
+DB_TLS_VERIFY=0
+DB_TLS_CA_PATH=
 ```
 
 **Required settings for Google Sheets (production):**
