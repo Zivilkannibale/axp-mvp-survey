@@ -400,12 +400,15 @@ ui <- fluidPage(
       }
       .language-card {
         padding: 18px 18px 16px;
+        max-width: 520px;
+        margin: 18px auto;
       }
       .intro-panel--language {
         min-height: auto;
         padding: 12px 6px 10px;
         gap: 20px;
         justify-items: center;
+        grid-template-rows: auto;
       }
       .intro-center {
         display: grid;
@@ -448,6 +451,14 @@ ui <- fluidPage(
         padding: 10px 18px;
         border: 1px solid rgba(107, 61, 240, 0.6);
         text-align: center;
+      }
+      .intro-panel--language select.form-control {
+        appearance: none;
+        background-image: linear-gradient(45deg, transparent 50%, #4a4f63 50%), linear-gradient(135deg, #4a4f63 50%, transparent 50%);
+        background-position: calc(100% - 20px) 21px, calc(100% - 14px) 21px;
+        background-size: 6px 6px, 6px 6px;
+        background-repeat: no-repeat;
+        padding-right: 44px;
       }
       .intro-title {
         font-family: var(--font-head);
@@ -2102,7 +2113,8 @@ server <- function(input, output, session) {
                     "language_choice",
                     t("language_label"),
                     choices = c("English" = "en", "Deutsch" = "de"),
-                    selected = selected_language()
+                    selected = selected_language(),
+                    selectize = FALSE
                   )
                 ),
                 actionButton("next_step", t("language_continue"), class = "intro-start")
@@ -2874,8 +2886,6 @@ output$tracer_ui <- renderUI({
 }
 
 shinyApp(ui, server)
-
-
 
 
 
