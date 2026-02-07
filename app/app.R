@@ -1597,6 +1597,14 @@ server <- function(input, output, session) {
       visualize_1 = "Think of a time when you took either cannabis, psilocybin, alcohol or MDMA and visualize your experience.",
       visualize_2 = "Focus on one single, altered state experience. Visualize it. Think of where you were, the time it was, the sounds and smells around you.",
       visualize_3 = "Try recapturing the feel of your whole body and mind entering the experience. Once you have focused on that single experience, we can move on.",
+      context_title = "Describe the context in which you had this experience.",
+      transition_title = "Perfect!",
+      transition_body = "Next, we will ask you a series of questions for you to answer what you experienced.",
+      questions_title = "Questions",
+      free_text_title = "Freely describe your experience in your own words",
+      reward_eyebrow = "Final reveal",
+      reward_body_1 = "We are about to generate a personalized snapshot of your experience and compare it with others.",
+      reward_body_2 = "This is the reward for your contribution. Ready to see how you map onto the spectrum?",
       back = "Back",
       continue = "Continue",
       try_tracer = "Try Experience Tracer (Beta)",
@@ -1629,39 +1637,48 @@ server <- function(input, output, session) {
       animated_bg = "Animated p6m waves",
       load_default = "Loaded sheet: configured default tab (%s).",
       load_named = "Loaded sheet: %s (%s).",
-      load_failed = "Sheet load failed (%s): %s"
+      load_failed = "Sheet load failed (%s): %s",
+      sheet_tab_error = "Sheet tab not found (check spelling) or access denied."
     ),
     de = list(
-      language_title = "Sprache auswAehlen",
+      language_title = "Sprache auswählen",
       language_label = "Sprache",
       language_continue = "Weiter",
       app_eyebrow = "AXP-Umfrage",
       app_title = "Teilnehmerfragebogen",
-      intro_title = "EinfUehrung",
-      intro_body_1 = "Dieser Fragebogen kann aus einer lokalen CSV-Datei oder aus einem gemeinsamen Google Sheet geladen werden (Sheet Oeffnen). WAehle den einfachsten Workflow.",
-      intro_body_2 = "Tabs kOennen Versionen (z. B. v0.2, v0.3) oder verschiedene Sprachen darstellen. Setze den Standard-Tab in .Renviron oder gib unten einen Tab-Namen ein und klicke auf Neu laden.",
-      intro_body_3 = "Empfehlung: Lokal mit der CSV entwickeln, App starten und prUefen, dann ins Repo pushen. Nach dem Server-Pull die CSV in Google Drive hochladen, als Google Sheet Oeffnen und in einen neuen Tab kopieren, auf den das Service-Konto Zugriff hat.",
-      intro_list_1 = "Lokale CSV: docs/sample_questionnaire.csv bearbeiten fUer schnelle Offline-Aenderungen.",
-      intro_list_2 = "Google Sheets: Das geteilte Sheet bearbeiten, damit Mitarbeitende Inhalte ohne Code-Aenderung aktualisieren kOennen.",
+      intro_title = "Einführung",
+      intro_body_1 = "Dieser Fragebogen kann aus einer lokalen CSV-Datei oder aus einem geteilten Google Sheet geladen werden. Wähle den Workflow, der für dich am einfachsten ist.",
+      intro_body_2 = "Tabs können Versionen (z. B. v0.2, v0.3) oder verschiedene Sprachen darstellen. Setze den Standard-Tab in .Renviron oder gib unten einen Tab-Namen ein und klicke auf Neu laden.",
+      intro_body_3 = "Empfohlener Ablauf: Lokal mit der CSV entwickeln, die App starten und Änderungen prüfen, dann ins Repo pushen. Nach dem Server-Pull die CSV in Google Drive hochladen, als Google Sheet öffnen und in einen neuen Tab im gemeinsamen Survey-Sheet kopieren, auf den das Service-Konto Zugriff hat.",
+      intro_list_1 = "Lokale CSV: docs/sample_questionnaire.csv für schnelle Offline-Änderungen auf diesem Rechner bearbeiten.",
+      intro_list_2 = "Google Sheets: Das geteilte Sheet bearbeiten, damit Mitarbeitende Inhalte ohne Code-Änderung aktualisieren können.",
       sheet_tab_label = "Sheet-Tab (optional)",
       reload_questionnaire = "Fragebogen neu laden",
       reloading = "Wird geladen...",
       start = "Start",
       see_results = "Alle Ergebnisse ansehen",
       before_start = "Bevor wir starten",
-      consent_1 = "Das Altered eXperience Project organisiert und systematisiert Wissen Ueber subjektive Erfahrungen in verschiedenen BewusstseinszustAenden.",
-      consent_2 = "Einige dieser ZustAende unterscheiden sich stark von der normalen Erfahrung, und jede Person erlebt sie auf eigene Weise. Deshalb ist deine Teilnahme wichtig.",
-      consent_3 = "In diesem Experiment fokussieren wir uns auf substanzinduzierte verAenderte ZustAende mit Cannabis, Psilocybin, Alkohol und MDMA. Wenn du zustimmst, beantworten wir Fragen zu einer deiner Erfahrungen. Das dauert 5-10 Minuten.",
-      consent_4 = "Alle Erfahrungen bleiben anonym, und die Daten werden offen fUer Forschende bereitgestellt. Am Ende zeigen wir dir, wie deine Erfahrung im Vergleich zu anderen abschneidet.",
+      consent_1 = "Das Altered eXperience Project ist ein Versuch, unser Wissen über subjektive menschliche Erfahrungen in verschiedenen Bewusstseinszuständen zu organisieren und zu systematisieren.",
+      consent_2 = "Einige dieser Zustände unterscheiden sich stark von unserem gewöhnlichen Erleben, und jede Person erlebt sie auf ihre eigene Weise. Deshalb ist deine Teilnahme sehr wichtig.",
+      consent_3 = "In dieser Studie konzentrieren wir uns auf substanzinduzierte veränderte Zustände durch Cannabis, Psilocybin, Alkohol und MDMA. Wenn du zustimmst, beantworten wir Fragen zu einer deiner eigenen Erfahrungen. Das dauert etwa 5-10 Minuten.",
+      consent_4 = "Jede Erfahrung, die du teilst, bleibt vollständig anonym, und alle Daten werden Forschenden weltweit offen zur Verfügung gestellt. Nach Abschluss zeigen wir dir, wie deine Erfahrung im Vergleich zu den Erfahrungen anderer ausfällt.",
       consent_agree = "Ich stimme der Teilnahme zu",
       visualize_title = "Visualisiere deine Erfahrung",
       visualize_1 = "Denke an eine Erfahrung mit Cannabis, Psilocybin, Alkohol oder MDMA und visualisiere sie.",
-      visualize_2 = "Fokussiere eine einzelne, verAenderte Erfahrung. Stelle sie dir vor: Ort, Zeit, GerAeusche und GerUeche.",
-      visualize_3 = "Versuche das GefUehl von KOerper und Geist beim Eintritt in die Erfahrung zu reaktivieren. Dann kOennen wir fortfahren.",
-      back = "ZurUeck",
+      visualize_2 = "Fokussiere eine einzelne, veränderte Erfahrung. Stelle sie dir vor: Ort, Zeit, Geräusche und Gerüche.",
+      visualize_3 = "Versuche, das Gefühl von Körper und Geist beim Eintritt in diese Erfahrung wieder hervorzurufen. Dann können wir fortfahren.",
+      context_title = "Beschreibe den Kontext, in dem du diese Erfahrung gemacht hast.",
+      transition_title = "Perfekt!",
+      transition_body = "Als Nächstes stellen wir dir eine Reihe von Fragen dazu, was du erlebt hast.",
+      questions_title = "Fragen",
+      free_text_title = "Beschreibe deine Erfahrung frei mit deinen eigenen Worten",
+      reward_eyebrow = "Letzter Schritt",
+      reward_body_1 = "Wir erstellen jetzt eine persönliche Momentaufnahme deiner Erfahrung und vergleichen sie mit den Erfahrungen anderer.",
+      reward_body_2 = "Das ist die Belohnung für deinen Beitrag. Bereit zu sehen, wie du dich im Spektrum einordnest?",
+      back = "Zurück",
       continue = "Weiter",
       try_tracer = "Experience Tracer ausprobieren (Beta)",
-      back_to_feedback = "ZurUeck zum Feedback",
+      back_to_feedback = "Zurück zum Feedback",
       feedback = "Feedback",
       reveal_feedback = "Mein Feedback anzeigen",
       revealing = "Wird angezeigt...",
@@ -1670,7 +1687,7 @@ server <- function(input, output, session) {
       loading_tracer = "Experience Tracer wird geladen...",
       no_tracer = "Keine Experience-Tracer-Items konfiguriert.",
       how_to_read = "So liest du dieses Diagramm:",
-      how_to_read_body = " Die violette Form zeigt deine Werte aus dieser Eingabe. Weiter aussen bedeutet eine stAerkere berichtete Erfahrung.",
+      how_to_read_body = " Die violette Form zeigt deine Werte aus dieser Eingabe. Weiter außen bedeutet eine stärker berichtete Erfahrung.",
       peer_note_real = " Die grauen Punkte zeigen, wie andere im Durchschnitt geantwortet haben (Vergleichsdaten sind noch Mock).",
       peer_note_mock = " Diagramm und graue Punkte sind aktuell Mock-Daten.",
       plot_real = "Diagramm nutzt deine eingereichten Antworten.",
@@ -1681,16 +1698,17 @@ server <- function(input, output, session) {
       submission_no_db = "Feedback erzeugt (DB nicht konfiguriert).",
       validation_missing = "Fehlende Pflichtangaben: %s",
       validation_consent = "Zustimmung ist erforderlich, um fortzufahren.",
-      validation_slider = "Bitte bewege jeden Slider, bevor du fortfAehrst.",
-      validation_substance = "Bitte wAehle eine Substanz, um fortzufahren.",
-      validation_dose = "Bitte wAehle eine Dosis, um fortzufahren.",
+      validation_slider = "Bitte bewege jeden Slider, bevor du fortfährst.",
+      validation_substance = "Bitte wähle eine Substanz, um fortzufahren.",
+      validation_dose = "Bitte wähle eine Dosis, um fortzufahren.",
       experience_header_default = "Jede Erfahrung ist einzigartig",
       prep_title = "Dein Feedback ist bereit",
-      tracer_intro = "Zeichne eine Kurve, die deine subjektive IntensitAet Ueber die Zeit darstellt. Diese Funktion ist experimentell und wird noch nicht gespeichert.",
+      tracer_intro = "Zeichne eine Kurve, die deine subjektive Intensität über die Zeit darstellt. Diese Funktion ist experimentell und wird noch nicht gespeichert.",
       animated_bg = "Animierte p6m-Wellen",
       load_default = "Sheet geladen: Standard-Tab (%s).",
       load_named = "Sheet geladen: %s (%s).",
-      load_failed = "Sheet-Laden fehlgeschlagen (%s): %s"
+      load_failed = "Sheet-Laden fehlgeschlagen (%s): %s",
+      sheet_tab_error = "Sheet-Tab nicht gefunden (Schreibweise prüfen) oder Zugriff verweigert."
     )
   )
   t <- function(key, ...) {
@@ -1731,7 +1749,7 @@ server <- function(input, output, session) {
     if (sheet_name != "" && cfg$GOOGLE_SHEET_ID != "") {
       df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, sheet_name, cfg), silent = TRUE)
       if (inherits(df, "try-error")) {
-        load_status(format_load_status(sheet_name, is_error = TRUE, message = "Sheet tab not found (check spelling) or access denied."))
+        load_status(format_load_status(sheet_name, is_error = TRUE, message = t("sheet_tab_error")))
         return(invisible(NULL))
       }
     } else {
@@ -1753,7 +1771,7 @@ server <- function(input, output, session) {
     boot_progress(35)
     initial_df <- try(load_questionnaire_from_gsheet(cfg$GOOGLE_SHEET_ID, cfg$GOOGLE_SHEET_SHEETNAME, cfg), silent = TRUE)
     if (inherits(initial_df, "try-error")) {
-      initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME, is_error = TRUE, message = "Sheet tab not found (check spelling) or access denied.")
+      initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME, is_error = TRUE, message = t("sheet_tab_error"))
       initial_df <- load_questionnaire()
     } else {
       initial_status <- format_load_status(cfg$GOOGLE_SHEET_SHEETNAME)
@@ -2251,7 +2269,7 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Describe the context in which you had this experience."),
+          h3(t("context_title")),
           uiOutput("questionnaire_ui_page3"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -2267,10 +2285,10 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Perfect!"),
+          h3(t("transition_title")),
           div(
             class = "prep-body",
-            p("Next, we will ask you a series of questions for you to answer what you experienced.")
+            p(t("transition_body"))
           )
         ),
         div(
@@ -2286,7 +2304,7 @@ server <- function(input, output, session) {
         div(
           class = "app-card slider-page",
           `data-slider-ids` = paste(slider_group_ids1(), collapse = ","),
-          h3("Questions"),
+          h3(t("questions_title")),
           uiOutput("questionnaire_ui_slider1"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -2303,7 +2321,7 @@ server <- function(input, output, session) {
         div(
           class = "app-card slider-page",
           `data-slider-ids` = paste(slider_group_ids2(), collapse = ","),
-          h3("Questions"),
+          h3(t("questions_title")),
           uiOutput("questionnaire_ui_slider2"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -2320,7 +2338,7 @@ server <- function(input, output, session) {
         div(
           class = "app-card slider-page",
           `data-slider-ids` = paste(slider_group_ids3(), collapse = ","),
-          h3("Questions"),
+          h3(t("questions_title")),
           uiOutput("questionnaire_ui_slider3"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -2337,7 +2355,7 @@ server <- function(input, output, session) {
         div(
           class = "app-card slider-page",
           `data-slider-ids` = paste(slider_group_ids4(), collapse = ","),
-          h3("Questions"),
+          h3(t("questions_title")),
           uiOutput("questionnaire_ui_slider4"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -2353,7 +2371,7 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card",
-          h3("Freely describe your experience in your own words"),
+          h3(t("free_text_title")),
           uiOutput("questionnaire_ui_free"),
           div(class = "error-text", textOutput("validation_error"))
         ),
@@ -2370,12 +2388,12 @@ server <- function(input, output, session) {
       return(tagList(
         div(
           class = "app-card reward-card",
-          div(class = "reward-eyebrow", "Final reveal"),
+          div(class = "reward-eyebrow", t("reward_eyebrow")),
           h3(class = "reward-title", t("prep_title")),
           div(
             class = "reward-body",
-            p("We are about to generate a personalized snapshot of your experience and compare it with others."),
-            p("This is the reward for your contribution. Ready to see how you map onto the spectrum?")
+            p(t("reward_body_1")),
+            p(t("reward_body_2"))
           )
         ),
         div(class = "error-text", textOutput("validation_error")),
