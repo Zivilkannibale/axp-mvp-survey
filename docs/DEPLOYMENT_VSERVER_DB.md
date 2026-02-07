@@ -190,7 +190,7 @@ systemctl status shiny-server
 
 ## Step 5: Test the Application
 
-1. Open browser: `http://85.215.90.33:3838/axp-mvp-survey/app/`
+1. Open browser: `http://85.215.90.33:3838/axp-mvp-survey/`
 2. Complete a test survey
 3. Verify data was saved:
 

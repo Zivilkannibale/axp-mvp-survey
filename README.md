@@ -79,8 +79,8 @@ The server keeps secrets and runtime config **outside git**. These files must ne
 ```bash
 cd /srv/shiny-server/axp-mvp-survey
 git fetch origin
-git checkout feature/mariadb-migration
-git pull --ff-only
+git checkout main
+git pull --ff-only origin main
 ```
 
 **Optional safety backup before pull:**
@@ -145,7 +145,7 @@ Optional columns for tracer configuration (all optional):
 - `tracer_y_min`, `tracer_y_max` (number; default 0..100)
 - `tracer_samples` (number; resampled vector length)
 - `tracer_height` (number; canvas height in px)
-- `tracer_min_points` (number; minimum points for required validation)
+- `tracer_min_points` (number; tracer UI threshold metadata, not currently enforced on submit)
 - `tracer_top_label` (string; top-right label inside the canvas)
 - `tracer_grid_cols`, `tracer_grid_rows` (number; grid resolution)
 
@@ -278,7 +278,7 @@ sudo cp -a /etc/shiny-server/shiny-server.conf "$backup_dir"/shiny-server.conf 2
 # sync without clobbering local changes
 git fetch origin
 git status --short
-DEPLOY_BRANCH="feature/mariadb-migration"
+DEPLOY_BRANCH="main"
 git pull --ff-only origin "$DEPLOY_BRANCH"
 
 # restore server-only files (in case tracked files overwrote them)
@@ -355,7 +355,7 @@ systemctl restart shiny-server
 
 # 6. Verify
 systemctl status shiny-server
-curl -s http://localhost:3838/axp-mvp-survey/app/ | head -20
+curl -s http://localhost:3838/axp-mvp-survey/ | head -20
 ```
 
 ### Initial database setup (one-time)

@@ -50,10 +50,11 @@ Browser (Shiny client)
 - `ui` is a `fluidPage` with a top shell and dynamic `uiOutput("page_ui")`.
 - The progress indicator is rendered by `output$progress_steps`.
 - Each step is a block in `output$page_ui`.
-- `output$page_scroll_js` injects a small script that scrolls to top after step changes.
+- A head script watches `#page_ui` and forces scroll-to-top after step changes.
 
 ### Step numbering (current)
 
+0. Language selection
 1. Intro
 2. Consent
 3. Visualize experience
@@ -66,9 +67,9 @@ Browser (Shiny client)
 10. Slider group 3
 11. Slider group 4
 12. Free-text page
-13. Experience tracer
-14. Reward (final reveal)
-15. Results/feedback
+13. Reward (final reveal + submit)
+14. Results/feedback
+15. Optional experience tracer
 
 ## Questionnaire schema and rendering
 
@@ -85,7 +86,7 @@ If you add a new input type, you must update **both**:
 
 The server validates required items on submit:
 - `sliderInput` uses a `__touched` flag.
-- `experience_tracer` requires a minimum point count.
+- `experience_tracer` is currently optional and skipped by required-field checks.
 - All other required fields must be non-empty.
 
 ## Adding or changing steps
@@ -93,7 +94,7 @@ The server validates required items on submit:
 1) Update `output$page_ui` with a new step block.
 2) Update the `observeEvent(input$next_step)` logic to advance.
 3) Update `progress_end_step` if the progress bar range changes.
-4) Update the feedback step if needed (step 15 currently).
+4) Update the feedback step if needed (step 14 currently).
 
 ### Reward progress indicator
 
@@ -105,9 +106,9 @@ The server validates required items on submit:
 ## Scroll-to-top behavior
 
 To ensure the new step starts at the top:
-- The app injects `output$page_scroll_js` after `page_ui`.
-- The script calls `window.__axpScrollTop()` multiple times after render.
-- `window.__axpScrollTop` is defined in the head script and uses:
+- `window.__axpScrollTop` is defined in the head script.
+- A `MutationObserver` on `#page_ui` triggers repeated hard scroll-to-top calls after step content changes.
+- The hard scroll routine uses:
   - Anchor jump
   - `window.scrollTo(0, 0)`
   - document `scrollTop` resets
@@ -153,7 +154,7 @@ The app uses MariaDB for raw data storage.
 - `response_text` - Free-text responses (**never exported to public**)
 - `score` - Computed scale scores
 - `aggregate_norms` - Periodically computed norm statistics
-- `response_tracer` - Experience tracer raw data (JSON)
+- `response_tracer` - Experience tracer raw data table (currently not populated by app writes)
 
 ### Configuration:
 ```bash
@@ -166,7 +167,7 @@ DB_PASSWORD=<secret>
 DB_TLS=1
 ```
 
-For local development, omit `DB_*` vars entirely — the app skips DB writes.
+For local development, omit `DB_*` vars entirely; the app skips DB writes.
 
 ## Scoring and feedback
 
